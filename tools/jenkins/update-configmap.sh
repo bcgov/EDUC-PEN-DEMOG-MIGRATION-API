@@ -2,7 +2,7 @@ envValue=$1
 APP_NAME=$2
 OPENSHIFT_NAMESPACE=$3
 APP_NAME_UPPER=${APP_NAME^^}
-
+SOAM_KC_REALM_ID="master"
 TZVALUE="America/Vancouver"
 
 oc project "$OPENSHIFT_NAMESPACE"-"$envValue"
