@@ -34,10 +34,6 @@ objects:
           containers:
             - image: docker-registry.default.svc:5000/${NAMESPACE}/${REPO_NAME}-${JOB_NAME}:${TAG}
               imagePullPolicy: Always
-              volumeMounts:
-              - name: tls-certs
-                mountPath: "/etc/tls-certs"
-                readOnly: true
               readinessProbe:
                 tcpSocket:
                   port: 8080
