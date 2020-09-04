@@ -56,10 +56,8 @@ public class StudentService {
             mappedStudentRecord.setPostalCode(null);
           }
         }
-        if (mappedStudentRecord.getGradeCode() != null && !"".equalsIgnoreCase(mappedStudentRecord.getGradeCode().trim())) {
-          mappedStudentRecord.setGradeCode(mappedStudentRecord.getGradeCode());
-        } else {
-          mappedStudentRecord.setGradeCode(null); // update to null to maintain FK reference and not insert blank.
+        if (mappedStudentRecord.getGradeCode() != null && "".equalsIgnoreCase(mappedStudentRecord.getGradeCode().trim())) {
+          mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string.
         }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
         mappedStudentRecord.setUpdateDate(LocalDateTime.now());
