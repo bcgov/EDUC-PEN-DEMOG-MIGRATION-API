@@ -56,6 +56,11 @@ public class StudentService {
             mappedStudentRecord.setPostalCode(null);
           }
         }
+        if (mappedStudentRecord.getGradeCode() != null && !"".equalsIgnoreCase(mappedStudentRecord.getGradeCode().trim())) {
+          mappedStudentRecord.setGradeCode(mappedStudentRecord.getGradeCode());
+        } else {
+          mappedStudentRecord.setGradeCode(null); // update to null to maintain FK reference and not insert blank.
+        }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
         mappedStudentRecord.setUpdateDate(LocalDateTime.now());
         studentEntities.add(mappedStudentRecord);
