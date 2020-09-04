@@ -69,8 +69,8 @@ public class StudentService {
     }
     if (!studentEntities.isEmpty()) {
       studentRepository.saveAll(studentEntities);
+      log.info("processing complete for surNameLike :: {}, persisted {} records into DB", surNameLike, studentEntities.size());
     }
-    log.info("processing complete for surNameLike :: {}", surNameLike);
     return true;
   }
 

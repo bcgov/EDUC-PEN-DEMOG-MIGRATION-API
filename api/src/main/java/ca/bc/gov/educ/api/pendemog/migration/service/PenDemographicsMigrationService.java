@@ -155,7 +155,7 @@ public class PenDemographicsMigrationService implements Closeable {
       studentMergeRepository.saveAll(mergeFromEntities);
       studentMergeRepository.saveAll(mergeTOEntities);
     }
-    log.info("finished data migration of Merges");
+    log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records to DB", mergeFromEntities.size(), mergeTOEntities.size());
   }
 
   private void createMergedRecords(List<PenMergesEntity> penMerges, List<StudentMergeEntity> mergeFromEntities, List<StudentMergeEntity> mergeTOEntities) {
