@@ -76,8 +76,12 @@ public class StudentService {
       index++;
     }
     if (!studentEntities.isEmpty()) {
-      studentRepository.saveAll(studentEntities);
-      log.info("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
+      try {
+        studentRepository.saveAll(studentEntities);
+        log.info("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
+      } catch (final Exception ex) {
+        log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
+      }
     }
     return true;
   }

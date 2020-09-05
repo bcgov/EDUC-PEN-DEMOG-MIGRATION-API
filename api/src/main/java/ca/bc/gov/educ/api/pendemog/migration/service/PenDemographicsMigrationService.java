@@ -5,6 +5,7 @@ import ca.bc.gov.educ.api.pendemog.migration.repository.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ import java.util.stream.Collectors;
 public class PenDemographicsMigrationService implements Closeable {
 
   private final ExecutorService executorService = Executors.newFixedThreadPool(100);
-  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(20);
+  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(50);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -91,14 +92,21 @@ public class PenDemographicsMigrationService implements Closeable {
       }
     }
     if (!futures.isEmpty()) {
+      log.info("waiting for future results. futures size is :: {}", futures.size());
       for (var future : futures) {
         try {
-          for (var innerFuture : future.get())
-            try {
-              innerFuture.get();
-            } catch (ExecutionException | InterruptedException e) {
-              log.warn("Error waiting for result", e);
-            }
+          val innerFutures  = future.get();
+          if(innerFutures != null && !innerFutures.isEmpty()){
+            for (var innerFuture : innerFutures)
+              try {
+                innerFuture.get();
+              } catch (ExecutionException | InterruptedException e) {
+                log.warn("Error waiting for result", e);
+              }
+          }else {
+            log.info("no inner future for this one.");
+          }
+
         } catch (InterruptedException | ExecutionException e) {
           log.warn("Error waiting for result", e);
         }
