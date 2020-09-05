@@ -1,5 +1,6 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
+import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
@@ -10,19 +11,20 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class StudentService {
+  private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
   private final StudentRepository studentRepository;
 
@@ -31,6 +33,11 @@ public class StudentService {
     this.studentRepository = studentRepository;
   }
 
+  @PostConstruct
+  public void init() {
+    gradeCodes.addAll(Arrays.stream(GradeCodes.values()).map(GradeCodes::getCode).collect(Collectors.toSet()));
+    log.info("Added all the grade codes {}", gradeCodes.size());
+  }
 
   @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
   public boolean processDemographicsEntities(List<PenDemographicsEntity> penDemographicsEntities, String surNameLike) {
@@ -46,7 +53,7 @@ public class StudentService {
           LocalDate dob = LocalDate.parse(penDemog.getStudBirth());
           mappedStudentRecord.setDob(dob);
         } catch (final Exception e) {
-          mappedStudentRecord.setDob(LocalDate.now());
+          mappedStudentRecord.setDob(LocalDate.parse("2000-01-01"));
         }
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         Validator validator = factory.getValidator();
@@ -56,8 +63,9 @@ public class StudentService {
             mappedStudentRecord.setPostalCode(null);
           }
         }
-        if (mappedStudentRecord.getGradeCode() != null && "".equalsIgnoreCase(mappedStudentRecord.getGradeCode().trim())) {
-          mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string.
+        if (mappedStudentRecord.getGradeCode() != null && !gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
+          log.info("updated grade code to null from :: {} at index {}, for surname {}", mappedStudentRecord.getGradeCode(), index, surNameLike);
+          mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
         }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
         mappedStudentRecord.setUpdateDate(LocalDateTime.now());

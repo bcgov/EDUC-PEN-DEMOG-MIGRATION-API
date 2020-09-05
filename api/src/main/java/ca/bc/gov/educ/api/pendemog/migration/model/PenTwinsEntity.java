@@ -19,10 +19,10 @@ import javax.persistence.*;
 public class PenTwinsEntity {
 
   @Id
-  @Column(name = "PEN_TWIN_1")
+  @Column(name = "PEN_TWIN1")
   String penTwin1;
   @Id
-  @Column(name = "PEN_TWIN_2")
+  @Column(name = "PEN_TWIN2")
   String penTwin2;
   @Column(name = "TWIN_REASON")
   String twinReason;
