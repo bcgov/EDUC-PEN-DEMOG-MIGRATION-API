@@ -40,13 +40,13 @@ public class StudentService {
   }
 
   @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
-  public boolean processDemographicsEntities(List<PenDemographicsEntity> penDemographicsEntities, String surNameLike) {
+  public boolean processDemographicsEntities(List<PenDemographicsEntity> penDemographicsEntities, String studNoLike) {
     var currentLotSize = penDemographicsEntities.size();
     List<StudentEntity> studentEntities = new ArrayList<>();
     var index = 1;
     for (var penDemog : penDemographicsEntities) {
       if (penDemog.getStudNo() != null && penDemog.getStudBirth() != null) {
-        log.info("Total Records :: {} , processing pen :: {} at index {}, for surname {}", currentLotSize, penDemog.getStudNo(), index, surNameLike);
+        log.info("Total Records :: {} , processing pen :: {} at index {}, for studNoLike {}", currentLotSize, penDemog.getStudNo(), index, studNoLike);
         penDemog.setStudBirth(getFormattedDOB(penDemog.getStudBirth())); //update the format
         var mappedStudentRecord = studentMapper.toStudent(penDemog);
         try {
@@ -64,20 +64,20 @@ public class StudentService {
           }
         }
         if (mappedStudentRecord.getGradeCode() != null && !gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
-          log.info("updated grade code to null from :: {} at index {}, for surname {}", mappedStudentRecord.getGradeCode(), index, surNameLike);
+          log.info("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
           mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
         }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
         mappedStudentRecord.setUpdateDate(LocalDateTime.now());
         studentEntities.add(mappedStudentRecord);
       } else {
-        log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for surname {}", index, surNameLike);
+        log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for studNoLike {}", index, studNoLike);
       }
       index++;
     }
     if (!studentEntities.isEmpty()) {
       studentRepository.saveAll(studentEntities);
-      log.info("processing complete for surNameLike :: {}, persisted {} records into DB", surNameLike, studentEntities.size());
+      log.info("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
     }
     return true;
   }

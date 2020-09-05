@@ -15,4 +15,5 @@ public interface StudentRepository extends CrudRepository<StudentEntity, UUID>, 
 
   List<StudentEntity> findByLegalLastNameLike(String legalLastName);
 
+  List<StudentEntity> findByPenLike(String penLike);
 }

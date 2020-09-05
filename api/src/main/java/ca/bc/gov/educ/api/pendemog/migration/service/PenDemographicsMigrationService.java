@@ -11,10 +11,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -26,8 +23,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
-  private final ExecutorService executorService = Executors.newFixedThreadPool(26);
-  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(5);
+  private final ExecutorService executorService = Executors.newFixedThreadPool(100);
+  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(20);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -45,11 +42,16 @@ public class PenDemographicsMigrationService implements Closeable {
   private final StudentTwinRepository studentTwinRepository;
 
   private final StudentService studentService;
-  /**
-   * The Sur name array.
-   */
-  private static final String[] surNames = new String[]{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
 
+  private final Set<String> studNoSet = new HashSet<>();
+
+  @PostConstruct
+  public void init() {
+    for (var i = 10000; i < 100000; i++) {
+      studNoSet.add("" + i);
+    }
+    log.info("init method completed.");
+  }
 
   @Autowired
   public PenDemographicsMigrationService(final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentService studentService) {
@@ -75,16 +77,16 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
 
-  private void processDemogDataMigration(String startLetter) {
-    log.info("starting data migration from letter :: {}", startLetter);
+  private void processDemogDataMigration(String startFromStudNoLike) {
+    log.info("starting data migration from studNo :: {}", startFromStudNoLike);
     List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
     boolean isProcessingTillCurrentAlphabetDone = true;
-    for (String surNameLike : surNames) {
-      if (isProcessingTillCurrentAlphabetDone && surNameLike.equalsIgnoreCase(startLetter)) {
+    for (String studNo : studNoSet) {
+      if (isProcessingTillCurrentAlphabetDone && studNo.equalsIgnoreCase(startFromStudNoLike)) {
         isProcessingTillCurrentAlphabetDone = false;
       }
       if (!isProcessingTillCurrentAlphabetDone) {
-        final Callable<List<Future<Boolean>>> callable = () -> processDemog(surNameLike);
+        final Callable<List<Future<Boolean>>> callable = () -> processDemog(studNo);
         futures.add(queryExecutors.submit(callable));
       }
     }
@@ -105,18 +107,25 @@ public class PenDemographicsMigrationService implements Closeable {
     log.info("All pen demog records have been processed, moving to next phase");
   }
 
-  private List<Future<Boolean>> processDemog(String surNameLike) {
+  private List<Future<Boolean>> processDemog(String studNoLike) {
     List<Future<Boolean>> futures = new ArrayList<>();
-    log.info("Now Processing surname starting with :: {}", surNameLike);
-    List<StudentEntity> studentEntities = getStudentRepository().findByLegalLastNameLike(surNameLike + "%");
-    List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudSurnameLike(surNameLike + "%");
-    List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.stream().filter(penDemographicsEntity ->
-        studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
-    log.info("Found {} records for surname starting with {}", penDemographicsEntitiesToBeProcessed.size(), surNameLike);
-    if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
-      final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, surNameLike);
-      futures.add(executorService.submit(callable));
+    log.info("Now Processing studNo starting with :: {}", studNoLike);
+    List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%");
+    if (!penDemographicsEntities.isEmpty()) {
+      log.info("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
+      List<StudentEntity> studentEntities = getStudentRepository().findByPenLike(studNoLike + "%");
+      log.info("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
+      List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.stream().filter(penDemographicsEntity ->
+          studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
+      log.info("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
+      if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
+        final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
+        futures.add(executorService.submit(callable));
+      }
+    } else {
+      log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped.", studNoLike);
     }
+
     return futures;
   }
 

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface PenDemographicsMigrationEndpoint {
 
   @GetMapping
-  ResponseEntity<Void> kickOffMigrationProcess(@RequestParam(name = "startFromSurnameLike", required = false) String startFromSurnameLike);
+  ResponseEntity<Void> kickOffMigrationProcess(@RequestParam(name = "startFromStudNoLike", required = false) String startFromStudNoLike);
 
   @GetMapping("/merges")
   ResponseEntity<Void> kickOffMergesMigrationProcess();

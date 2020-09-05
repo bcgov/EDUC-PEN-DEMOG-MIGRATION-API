@@ -20,5 +20,7 @@ public interface PenDemographicsMigrationRepository extends CrudRepository<PenDe
    */
   Optional<PenDemographicsEntity> findByStudNo(String pen);
 
+  List<PenDemographicsEntity> findByStudNoLike(String studNo);
+
   List<PenDemographicsEntity> findByStudSurnameLike(String studSurnameStartingLetter);
 }
