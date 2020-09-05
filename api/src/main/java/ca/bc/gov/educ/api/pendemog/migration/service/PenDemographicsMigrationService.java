@@ -134,11 +134,12 @@ public class PenDemographicsMigrationService implements Closeable {
     List<Future<Boolean>> futures = new ArrayList<>();
     log.info("Now Processing surname starting with :: {}", surNameLike);
     List<StudentEntity> studentEntities = getStudentRepository().findByLegalLastNameLike(surNameLike + "%");
-    var penNumList = studentEntities.stream().map(StudentEntity::getPen).collect(Collectors.toList());
-    List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudSurnameLikeAndStudNoNotIn(surNameLike + "%", penNumList);
-    log.info("Found {} records for surname starting with {}", penDemographicsEntities.size(), surNameLike);
-    if (!penDemographicsEntities.isEmpty()) {
-      final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntities, surNameLike);
+    List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudSurnameLike(surNameLike + "%");
+    List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.stream().filter(penDemographicsEntity ->
+        studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
+    log.info("Found {} records for surname starting with {}", penDemographicsEntitiesToBeProcessed.size(), surNameLike);
+    if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
+      final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, surNameLike);
       futures.add(executorService.submit(callable));
     }
     return futures;
