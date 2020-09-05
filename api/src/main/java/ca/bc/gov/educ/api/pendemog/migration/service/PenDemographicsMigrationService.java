@@ -49,22 +49,7 @@ public class PenDemographicsMigrationService implements Closeable {
    * The Sur name array.
    */
   private static final String[] surNames = new String[]{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-  private final List<String> surNameLikes = new ArrayList<>();
 
-  /**
-   * prepare a surname list which can be queries upon. this creates smaller chunks to query and faster processing.
-   */
-  @PostConstruct
-  public void init() {
-    for (var surname : surNames) {
-      for (var surname1 : surNames) {
-        for (var surname2 : surNames) {
-          surNameLikes.add(surname + surname1 + surname2);
-        }
-      }
-    }
-    log.info("created the surname list which contains {} records", surNameLikes.size());
-  }
 
   @Autowired
   public PenDemographicsMigrationService(final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentService studentService) {
@@ -94,7 +79,7 @@ public class PenDemographicsMigrationService implements Closeable {
     log.info("starting data migration from letter :: {}", startLetter);
     List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
     boolean isProcessingTillCurrentAlphabetDone = true;
-    for (String surNameLike : surNameLikes) {
+    for (String surNameLike : surNames) {
       if (isProcessingTillCurrentAlphabetDone && surNameLike.equalsIgnoreCase(startLetter)) {
         isProcessingTillCurrentAlphabetDone = false;
       }
@@ -228,7 +213,7 @@ public class PenDemographicsMigrationService implements Closeable {
         studentTwinEntity1.setStudentID(studentEntityOptional1.get().getStudentID());
         studentTwinEntity1.setTwinStudent(studentEntityOptional2.get());
 
-        StudentTwinEntity studentTwinEntity2 = new StudentTwinEntity();
+       /* StudentTwinEntity studentTwinEntity2 = new StudentTwinEntity();
         studentTwinEntity2.setCreateDate(LocalDateTime.now());
         studentTwinEntity2.setUpdateDate(LocalDateTime.now());
         if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
@@ -240,9 +225,9 @@ public class PenDemographicsMigrationService implements Closeable {
         }
         studentTwinEntity2.setStudentTwinReasonCode("PENMATCH");
         studentTwinEntity2.setStudentID(studentEntityOptional2.get().getStudentID());
-        studentTwinEntity2.setTwinStudent(studentEntityOptional1.get());
+        studentTwinEntity2.setTwinStudent(studentEntityOptional1.get());*/
         twinEntities.add(studentTwinEntity1);
-        twinEntities.add(studentTwinEntity2);
+        //twinEntities.add(studentTwinEntity2);
       } else {
         log.error("Student entity could not be found for twin 1 pen :: {} and twin 2 pen :: {}", penTwinsEntity.getPenTwin1().trim(), penTwinsEntity.getPenTwin2().trim());
       }
