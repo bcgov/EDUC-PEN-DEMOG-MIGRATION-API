@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * The type Pen demographics migration service.
  */
-@Service
+@Component
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
