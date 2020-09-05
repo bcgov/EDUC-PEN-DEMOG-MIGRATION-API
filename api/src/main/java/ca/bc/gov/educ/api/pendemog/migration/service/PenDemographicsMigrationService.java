@@ -83,27 +83,27 @@ public class PenDemographicsMigrationService implements Closeable {
     List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
     boolean isProcessingTillCurrentAlphabetDone = true;
     for (String studNo : studNoSet) {
-      if (isProcessingTillCurrentAlphabetDone && studNo.equalsIgnoreCase(startFromStudNoLike)) {
+     /* if (isProcessingTillCurrentAlphabetDone && studNo.equalsIgnoreCase(startFromStudNoLike)) {
         isProcessingTillCurrentAlphabetDone = false;
       }
-      if (!isProcessingTillCurrentAlphabetDone) {
-        final Callable<List<Future<Boolean>>> callable = () -> processDemog(studNo);
-        futures.add(queryExecutors.submit(callable));
-      }
+      if (!isProcessingTillCurrentAlphabetDone) {*/
+      final Callable<List<Future<Boolean>>> callable = () -> processDemog(studNo);
+      futures.add(queryExecutors.submit(callable));
+      //}
     }
     if (!futures.isEmpty()) {
       log.info("waiting for future results. futures size is :: {}", futures.size());
       for (var future : futures) {
         try {
-          val innerFutures  = future.get();
-          if(innerFutures != null && !innerFutures.isEmpty()){
+          val innerFutures = future.get();
+          if (innerFutures != null && !innerFutures.isEmpty()) {
             for (var innerFuture : innerFutures)
               try {
                 innerFuture.get();
               } catch (ExecutionException | InterruptedException e) {
                 log.warn("Error waiting for result", e);
               }
-          }else {
+          } else {
             log.info("no inner future for this one.");
           }
 
