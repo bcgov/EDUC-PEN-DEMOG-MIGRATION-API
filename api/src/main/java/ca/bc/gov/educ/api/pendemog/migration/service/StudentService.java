@@ -19,11 +19,13 @@ import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
 @Slf4j
 public class StudentService {
+  private final AtomicInteger counter = new AtomicInteger();
   private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
   private final StudentRepository studentRepository;
@@ -83,6 +85,7 @@ public class StudentService {
         log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
       }
     }
+    log.info("total number of records processed :: {}", counter.incrementAndGet());
     return true;
   }
 

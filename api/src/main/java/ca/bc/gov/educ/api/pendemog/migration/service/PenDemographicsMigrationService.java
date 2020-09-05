@@ -48,9 +48,19 @@ public class PenDemographicsMigrationService implements Closeable {
 
   @PostConstruct
   public void init() {
-    for (var i = 1000; i < 10000; i++) {
+    for (var i = 1000; i < 2000; i++) {
       studNoSet.add("" + i);
     }
+    studNoSet.add("2");
+    studNoSet.add("3");
+    studNoSet.add("4");
+    studNoSet.add("5");
+    studNoSet.add("6");
+    studNoSet.add("7");
+    for (var i = 8000; i < 10000; i++) {
+      studNoSet.add("" + i);
+    }
+
     log.info("init method completed.");
   }
 
@@ -103,10 +113,7 @@ public class PenDemographicsMigrationService implements Closeable {
               } catch (ExecutionException | InterruptedException e) {
                 log.warn("Error waiting for result", e);
               }
-          } else {
-            log.info("no inner future for this one.");
           }
-
         } catch (InterruptedException | ExecutionException e) {
           log.warn("Error waiting for result", e);
         }
