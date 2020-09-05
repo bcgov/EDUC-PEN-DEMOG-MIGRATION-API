@@ -25,7 +25,7 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
 
   @Override
   public ResponseEntity<Void> kickOffMigrationProcess(String startFromSurnameLike) {
-    var startFromLetter = startFromSurnameLike == null ? "AA" : startFromSurnameLike;
+    var startFromLetter = startFromSurnameLike == null ? "AAA" : startFromSurnameLike;
     executorService.execute(() -> penDemographicsMigrationService.processDataMigration(startFromLetter));
     return ResponseEntity.noContent().build();
   }
