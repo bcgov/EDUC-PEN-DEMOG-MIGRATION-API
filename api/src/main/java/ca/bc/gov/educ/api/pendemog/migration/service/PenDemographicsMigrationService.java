@@ -48,7 +48,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   @PostConstruct
   public void init() {
-    for (var i = 10000; i < 100000; i++) {
+    for (var i = 1000; i < 10000; i++) {
       studNoSet.add("" + i);
     }
     log.info("init method completed.");
