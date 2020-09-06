@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -166,51 +167,59 @@ public class PenDemographicsMigrationService implements Closeable {
     final AtomicInteger counter = new AtomicInteger();
     Map<String, List<String>> mergeEntitiesMap = new HashMap<>();
     for (var penMerge : penMerges) {
-      if (mergeEntitiesMap.containsKey(penMerge.getStudNo().trim())) {
-        List<String> penNumbers = mergeEntitiesMap.get(penMerge.getStudNo().trim());
+      if (mergeEntitiesMap.containsKey(penMerge.getStudTrueNo().trim())) {
+        List<String> penNumbers = mergeEntitiesMap.get(penMerge.getStudTrueNo().trim());
         penNumbers.add(penMerge.getStudNo().trim());
-        mergeEntitiesMap.put(penMerge.getStudNo().trim(), penNumbers);
+        mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
       } else {
         List<String> penNumbers = new ArrayList<>();
         penNumbers.add(penMerge.getStudNo().trim());
-        mergeEntitiesMap.put(penMerge.getStudNo().trim(), penNumbers);
+        mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
       }
     }
     log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());
-    mergeEntitiesMap.forEach((truePen, penList) -> {
-      var originalStudent = studentRepository.findStudentEntityByPen(truePen);
-      penList.parallelStream().forEach(penNumber -> {
-        log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
-        var mergedStudent = studentRepository.findStudentEntityByPen(penNumber);
-        if (originalStudent.isPresent() && mergedStudent.isPresent()) {
-          StudentMergeEntity mergeFromEntity = new StudentMergeEntity();
-          mergeFromEntity.setStudentMergeSourceCode("MINISTRY"); // mapped from MERGE_TO_USER_BANE of PEN_DEMOG, default value, currently it is
-          mergeFromEntity.setStudentMergeDirectionCode("FROM");
-          mergeFromEntity.setStudentID(originalStudent.get().getStudentID()); // TO
-          mergeFromEntity.setMergeStudent(mergedStudent.get()); // FROM
-          mergeFromEntity.setCreateDate(LocalDateTime.now());
-          mergeFromEntity.setUpdateDate(LocalDateTime.now());
-          mergeFromEntity.setCreateUser(originalStudent.get().getCreateUser());
-          mergeFromEntity.setUpdateUser(originalStudent.get().getUpdateUser());
-          log.info("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
-          mergeFromEntities.add(mergeFromEntity);
+    mergeEntitiesMap.forEach(findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities, counter));
+  }
 
-          StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
-          mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
-          mergeTOEntity.setStudentMergeDirectionCode("TO");
-          mergeTOEntity.setStudentID(mergedStudent.get().getStudentID()); // FROM
-          mergeTOEntity.setMergeStudent(originalStudent.get()); // TO
-          mergeTOEntity.setCreateDate(LocalDateTime.now());
-          mergeTOEntity.setUpdateDate(LocalDateTime.now());
-          mergeTOEntity.setCreateUser(originalStudent.get().getCreateUser());
-          mergeTOEntity.setUpdateUser(originalStudent.get().getUpdateUser());
-          log.info("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
-          mergeTOEntities.add(mergeTOEntity);
-        } else {
-          log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
-        }
-      });
-    });
+  private BiConsumer<String, List<String>> findAndCreateMergeEntities(List<StudentMergeEntity> mergeFromEntities, List<StudentMergeEntity> mergeTOEntities, AtomicInteger counter) {
+    return (truePen, penList) -> {
+      var originalStudent = studentRepository.findStudentEntityByPen(truePen);
+      penList.parallelStream().forEach(createMergeStudentEntities(mergeFromEntities, mergeTOEntities, counter, truePen, originalStudent));
+    };
+  }
+
+  private Consumer<String> createMergeStudentEntities(List<StudentMergeEntity> mergeFromEntities, List<StudentMergeEntity> mergeTOEntities, AtomicInteger counter, String truePen, Optional<StudentEntity> originalStudent) {
+    return penNumber -> {
+      log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
+      var mergedStudent = studentRepository.findStudentEntityByPen(penNumber);
+      if (originalStudent.isPresent() && mergedStudent.isPresent()) {
+        StudentMergeEntity mergeFromEntity = new StudentMergeEntity();
+        mergeFromEntity.setStudentMergeSourceCode("MINISTRY"); // mapped from MERGE_TO_USER_BANE of PEN_DEMOG, default value, currently it is
+        mergeFromEntity.setStudentMergeDirectionCode("FROM");
+        mergeFromEntity.setStudentID(originalStudent.get().getStudentID()); // TO
+        mergeFromEntity.setMergeStudent(mergedStudent.get()); // FROM
+        mergeFromEntity.setCreateDate(LocalDateTime.now());
+        mergeFromEntity.setUpdateDate(LocalDateTime.now());
+        mergeFromEntity.setCreateUser(originalStudent.get().getCreateUser());
+        mergeFromEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+        log.info("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
+        mergeFromEntities.add(mergeFromEntity);
+
+        StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
+        mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
+        mergeTOEntity.setStudentMergeDirectionCode("TO");
+        mergeTOEntity.setStudentID(mergedStudent.get().getStudentID()); // FROM
+        mergeTOEntity.setMergeStudent(originalStudent.get()); // TO
+        mergeTOEntity.setCreateDate(LocalDateTime.now());
+        mergeTOEntity.setUpdateDate(LocalDateTime.now());
+        mergeTOEntity.setCreateUser(originalStudent.get().getCreateUser());
+        mergeTOEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+        log.info("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
+        mergeTOEntities.add(mergeTOEntity);
+      } else {
+        log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
+      }
+    };
   }
 
   public void processMigrationOfTwins() {
