@@ -1,5 +1,6 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
+import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
 import lombok.AccessLevel;
@@ -137,11 +138,11 @@ public class PenDemographicsMigrationService implements Closeable {
         final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
         futures.add(executorService.submit(callable));
       } else {
-        log.info("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, studentService.counter.incrementAndGet());
+        log.info("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
       }
     } else {
       log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped.", studNoLike);
-      log.info("total number of records processed :: {}", studentService.counter.incrementAndGet());
+      log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
     }
 
     return futures;

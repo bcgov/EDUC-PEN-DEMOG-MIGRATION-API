@@ -1,5 +1,6 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
+import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
@@ -88,7 +89,7 @@ public class StudentService {
         log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
       }
     }
-    log.info("total number of records processed :: {}", counter.incrementAndGet());
+    log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
     return true;
   }
 
