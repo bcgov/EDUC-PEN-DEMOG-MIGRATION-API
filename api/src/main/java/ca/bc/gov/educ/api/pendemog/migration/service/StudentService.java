@@ -69,6 +69,9 @@ public class StudentService {
           log.info("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
           mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
         }
+        if(mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")){
+          mappedStudentRecord.setLegalLastName("NULL");
+        }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
         mappedStudentRecord.setUpdateDate(LocalDateTime.now());
         studentEntities.add(mappedStudentRecord);
