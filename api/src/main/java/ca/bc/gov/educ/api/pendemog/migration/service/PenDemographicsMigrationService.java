@@ -15,6 +15,7 @@ import java.io.Closeable;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -162,22 +163,24 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   private void createMergedRecords(List<PenMergesEntity> penMerges, List<StudentMergeEntity> mergeFromEntities, List<StudentMergeEntity> mergeTOEntities) {
-
-    Map<String, List<String>> mergeFromMap = new HashMap<>();
+    final AtomicInteger counter = new AtomicInteger();
+    Map<String, List<String>> mergeEntitiesMap = new HashMap<>();
     for (var penMerge : penMerges) {
-      if (mergeFromMap.containsKey(penMerge.getStudNo().trim())) {
-        List<String> penNumbers = mergeFromMap.get(penMerge.getStudNo().trim());
+      if (mergeEntitiesMap.containsKey(penMerge.getStudNo().trim())) {
+        List<String> penNumbers = mergeEntitiesMap.get(penMerge.getStudNo().trim());
         penNumbers.add(penMerge.getStudNo().trim());
-        mergeFromMap.put(penMerge.getStudNo().trim(), penNumbers);
+        mergeEntitiesMap.put(penMerge.getStudNo().trim(), penNumbers);
       } else {
         List<String> penNumbers = new ArrayList<>();
         penNumbers.add(penMerge.getStudNo().trim());
-        mergeFromMap.put(penMerge.getStudNo().trim(), penNumbers);
+        mergeEntitiesMap.put(penMerge.getStudNo().trim(), penNumbers);
       }
     }
-    mergeFromMap.forEach((truePen, penList) -> {
+    log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());
+    mergeEntitiesMap.forEach((truePen, penList) -> {
       var originalStudent = studentRepository.findStudentEntityByPen(truePen);
-      penList.forEach(penNumber -> {
+      penList.parallelStream().forEach(penNumber -> {
+        log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
         var mergedStudent = studentRepository.findStudentEntityByPen(penNumber);
         if (originalStudent.isPresent() && mergedStudent.isPresent()) {
           StudentMergeEntity mergeFromEntity = new StudentMergeEntity();
@@ -189,6 +192,7 @@ public class PenDemographicsMigrationService implements Closeable {
           mergeFromEntity.setUpdateDate(LocalDateTime.now());
           mergeFromEntity.setCreateUser(originalStudent.get().getCreateUser());
           mergeFromEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+          log.info("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
           mergeFromEntities.add(mergeFromEntity);
 
           StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
@@ -200,9 +204,10 @@ public class PenDemographicsMigrationService implements Closeable {
           mergeTOEntity.setUpdateDate(LocalDateTime.now());
           mergeTOEntity.setCreateUser(originalStudent.get().getCreateUser());
           mergeTOEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+          log.info("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
           mergeTOEntities.add(mergeTOEntity);
         } else {
-          log.error("student entity not found for true pen and pen :: {} :: {}", truePen, penNumber);
+          log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
         }
       });
     });
