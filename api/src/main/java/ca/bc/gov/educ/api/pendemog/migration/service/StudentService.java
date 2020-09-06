@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class StudentService {
-  private final AtomicInteger counter = new AtomicInteger();
+  public final AtomicInteger counter = new AtomicInteger();
   private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
   private final StudentRepository studentRepository;
