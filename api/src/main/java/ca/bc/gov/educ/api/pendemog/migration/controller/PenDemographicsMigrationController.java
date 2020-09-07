@@ -51,7 +51,7 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
       var statement = dataSource.getConnection().prepareStatement(sql);
       var resultSet = statement.executeQuery();
       while (resultSet.next()) {
-        log.info("result is :: {}", resultSet.getObject(0));
+        log.info("result is :: {}", resultSet.getObject(1));
       }
       resultSet.close();
       statement.close();
