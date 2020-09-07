@@ -47,6 +47,7 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
 
   public ResponseEntity<Void> testQuery(String sql) {
     try {
+      log.info(sql);
       var statement = dataSource.getConnection().prepareStatement(sql);
       var resultSet = statement.executeQuery();
       while (resultSet.next()) {
