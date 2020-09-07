@@ -7,19 +7,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.sql.DataSource;
 import java.io.Closeable;
+import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @RestController
 @Slf4j
 public class PenDemographicsMigrationController implements PenDemographicsMigrationEndpoint, Closeable {
-
+  private final DataSource dataSource;
   private final ExecutorService executorService = Executors.newSingleThreadExecutor();
   private final PenDemographicsMigrationService penDemographicsMigrationService;
 
   @Autowired
-  public PenDemographicsMigrationController(PenDemographicsMigrationService penDemographicsMigrationService) {
+  public PenDemographicsMigrationController(DataSource dataSource, PenDemographicsMigrationService penDemographicsMigrationService) {
+    this.dataSource = dataSource;
     this.penDemographicsMigrationService = penDemographicsMigrationService;
   }
 
@@ -39,6 +42,21 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   @Override
   public ResponseEntity<Void> kickOffTwinsMigrationProcess() {
     executorService.execute(penDemographicsMigrationService::processMigrationOfTwins);
+    return ResponseEntity.noContent().build();
+  }
+
+  public ResponseEntity<Void> testQuery(String sql) {
+    try {
+      var statement = dataSource.getConnection().prepareStatement(sql);
+      var resultSet = statement.executeQuery();
+      while (resultSet.next()) {
+        log.info("result is :: {}", resultSet.getObject(0));
+      }
+      resultSet.close();
+      statement.close();
+    } catch (final Exception e) {
+      log.error("Exception :: {}", e, e);
+    }
     return ResponseEntity.noContent().build();
   }
 

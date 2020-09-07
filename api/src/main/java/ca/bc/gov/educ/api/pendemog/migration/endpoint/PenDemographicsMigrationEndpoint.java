@@ -17,4 +17,6 @@ public interface PenDemographicsMigrationEndpoint {
   @GetMapping("/twins")
   ResponseEntity<Void> kickOffTwinsMigrationProcess();
 
+  @GetMapping("/query")
+  ResponseEntity<Void> testQuery(@RequestParam(name = "query") String query);
 }
