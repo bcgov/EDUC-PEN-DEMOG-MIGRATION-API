@@ -112,6 +112,12 @@
       <groupId>org.springframework.retry</groupId>
       <artifactId>spring-retry</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>29.0-jre</version>
+      <!-- or, for Android: -->
+    </dependency>
   </dependencies>
 
   <build>

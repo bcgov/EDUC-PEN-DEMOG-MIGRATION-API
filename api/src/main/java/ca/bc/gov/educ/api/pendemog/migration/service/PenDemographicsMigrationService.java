@@ -157,8 +157,12 @@ public class PenDemographicsMigrationService implements Closeable {
     var penMerges = penMergeRepository.findAll();
     if (!penMerges.isEmpty()) {
       createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities);
-      studentMergeRepository.saveAll(mergeFromEntities);
-      studentMergeRepository.saveAll(mergeTOEntities);
+      List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
+      List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
+      log.info("created subset of {} merge from  entities", mergeFromSubset.size());
+      log.info("created subset of {} merge to  entities", mergeToSubset.size());
+      mergeFromSubset.parallelStream().forEach(entities -> getStudentMergeRepository().saveAll(entities));
+      mergeToSubset.parallelStream().forEach(entities -> getStudentMergeRepository().saveAll(entities));
     }
     log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records to DB", mergeFromEntities.size(), mergeTOEntities.size());
   }
@@ -231,9 +235,9 @@ public class PenDemographicsMigrationService implements Closeable {
     penTwins.parallelStream().forEach(createTwinEntities(twinEntities));
     if (!twinEntities.isEmpty()) {
       log.info("created {} twinned entities", twinEntities.size());
-      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 100);
+      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 1000);
       log.info("created subset of {} twinned entities", subSets.size());
-      subSets.parallelStream().forEach( studentTwinEntities -> getStudentTwinRepository().saveAll(twinEntities));
+      subSets.parallelStream().forEach(studentTwinEntities -> getStudentTwinRepository().saveAll(studentTwinEntities));
       log.info("saved all twinned entities {}", twinEntities.size());
     }
   }
