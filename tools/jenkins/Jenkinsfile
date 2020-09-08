@@ -24,7 +24,7 @@ pipeline{
       MIN_REPLICAS = "1"
       MAX_REPLICAS = "1"
       MIN_CPU = "1000m"
-      MAX_CPU = "8000m"
+      MAX_CPU = "7000m"
       MIN_MEM = "8050Mi"
       MAX_MEM = "10050Mi"
   }
