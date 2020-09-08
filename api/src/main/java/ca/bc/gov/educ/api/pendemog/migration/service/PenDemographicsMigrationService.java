@@ -92,7 +92,6 @@ public class PenDemographicsMigrationService implements Closeable {
 
 
   private void processDemogDataMigration(String startFromStudNoLike) {
-    log.info("starting data migration from studNo :: {}", startFromStudNoLike);
     List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
     boolean isProcessingTillCurrentAlphabetDone = true;
     for (String studNo : studNoSet) {
@@ -127,23 +126,23 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private List<Future<Boolean>> processDemog(String studNoLike) {
     List<Future<Boolean>> futures = new ArrayList<>();
-    log.info("Now Processing studNo starting with :: {}", studNoLike);
+    log.debug("Now Processing studNo starting with :: {}", studNoLike);
     List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%");
     if (!penDemographicsEntities.isEmpty()) {
-      log.info("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
+      log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
       List<StudentEntity> studentEntities = getStudentRepository().findByPenLike(studNoLike + "%");
-      log.info("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
+      log.debug("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
       List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.stream().filter(penDemographicsEntity ->
           studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
       if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
-        log.info("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
+        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
         final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
         futures.add(executorService.submit(callable));
       } else {
-        log.info("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
+        log.debug("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
       }
     } else {
-      log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped.", studNoLike);
+      log.debug("No Records found for Stud No like :: {} in PEN_DEMOG so skipped.", studNoLike);
       log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
     }
 

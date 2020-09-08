@@ -20,13 +20,11 @@ import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
 @Slf4j
 public class StudentService {
-  public final AtomicInteger counter = new AtomicInteger();
   private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
   private final StudentRepository studentRepository;
@@ -67,7 +65,7 @@ public class StudentService {
           }
         }
         if (mappedStudentRecord.getGradeCode() != null && !gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
-          log.info("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
+          log.debug("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
           mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
         }
         if(mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")){
@@ -84,7 +82,7 @@ public class StudentService {
     if (!studentEntities.isEmpty()) {
       try {
         studentRepository.saveAll(studentEntities);
-        log.info("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
+        log.debug("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
       } catch (final Exception ex) {
         log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
         throw ex;
