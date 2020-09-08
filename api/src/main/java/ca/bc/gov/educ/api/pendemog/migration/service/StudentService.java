@@ -47,7 +47,7 @@ public class StudentService {
     var index = 1;
     for (var penDemog : penDemographicsEntities) {
       if (penDemog.getStudNo() != null && penDemog.getStudBirth() != null) {
-        log.info("Total Records :: {} , processing pen :: {} at index {}, for studNoLike {}", currentLotSize, penDemog.getStudNo(), index, studNoLike);
+        log.debug("Total Records :: {} , processing pen :: {} at index {}, for studNoLike {}", currentLotSize, penDemog.getStudNo(), index, studNoLike);
         penDemog.setStudBirth(getFormattedDOB(penDemog.getStudBirth())); //update the format
         var mappedStudentRecord = studentMapper.toStudent(penDemog);
         try {
