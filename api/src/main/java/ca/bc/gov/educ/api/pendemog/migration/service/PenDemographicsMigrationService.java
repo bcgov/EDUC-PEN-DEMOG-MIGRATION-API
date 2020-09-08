@@ -201,7 +201,7 @@ public class PenDemographicsMigrationService implements Closeable {
         mergeFromEntity.setUpdateDate(LocalDateTime.now());
         mergeFromEntity.setCreateUser(originalStudent.get().getCreateUser());
         mergeFromEntity.setUpdateUser(originalStudent.get().getUpdateUser());
-        log.info("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
+        log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
         mergeFromEntities.add(mergeFromEntity);
 
         StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
@@ -213,7 +213,7 @@ public class PenDemographicsMigrationService implements Closeable {
         mergeTOEntity.setUpdateDate(LocalDateTime.now());
         mergeTOEntity.setCreateUser(originalStudent.get().getCreateUser());
         mergeTOEntity.setUpdateUser(originalStudent.get().getUpdateUser());
-        log.info("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
+        log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
         mergeTOEntities.add(mergeTOEntity);
       } else {
         log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
