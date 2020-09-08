@@ -65,7 +65,23 @@ objects:
       test: false
       triggers:
         - type: ConfigChange
-
+  - apiVersion: autoscaling/v2beta1
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: "${APP_NAME}-${JOB_NAME}-cpu-autoscaler"
+    spec:
+      scaleTargetRef:
+        apiVersion: apps.openshift.io/v1
+        kind: DeploymentConfig
+        name: "${APP_NAME}-${JOB_NAME}"
+        subresource: scale
+      minReplicas: ${{MIN_REPLICAS}}
+      maxReplicas: ${{MAX_REPLICAS}}
+      metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            targetAverageUtilization: 2000
 parameters:
   - name: REPO_NAME
     description: Application repository name
