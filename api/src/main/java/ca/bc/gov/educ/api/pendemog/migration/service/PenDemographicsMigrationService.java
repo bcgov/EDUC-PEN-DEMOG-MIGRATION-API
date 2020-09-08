@@ -3,6 +3,7 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
+import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -230,7 +231,9 @@ public class PenDemographicsMigrationService implements Closeable {
     penTwins.parallelStream().forEach(createTwinEntities(twinEntities));
     if (!twinEntities.isEmpty()) {
       log.info("created {} twinned entities", twinEntities.size());
-      getStudentTwinRepository().saveAll(twinEntities);
+      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 100);
+      log.info("created subset of {} twinned entities", subSets.size());
+      subSets.parallelStream().forEach( studentTwinEntities -> getStudentTwinRepository().saveAll(twinEntities));
       log.info("saved all twinned entities {}", twinEntities.size());
     }
   }
