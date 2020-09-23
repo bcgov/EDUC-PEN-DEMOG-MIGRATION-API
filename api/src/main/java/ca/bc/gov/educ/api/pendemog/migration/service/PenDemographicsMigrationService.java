@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
-  private final ExecutorService executorService = Executors.newFixedThreadPool(100);
-  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(45);
+  private final ExecutorService executorService = Executors.newFixedThreadPool(40);
+  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(35);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 

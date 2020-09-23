@@ -27,11 +27,11 @@ import java.util.stream.Collectors;
 public class StudentService {
   private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
-  private final StudentRepository studentRepository;
+  private final StudentPersistenceService studentPersistenceService;
 
   @Autowired
-  public StudentService(StudentRepository studentRepository) {
-    this.studentRepository = studentRepository;
+  public StudentService(StudentPersistenceService studentPersistenceService) {
+    this.studentPersistenceService = studentPersistenceService;
   }
 
   @PostConstruct
@@ -68,7 +68,7 @@ public class StudentService {
           log.debug("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
           mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
         }
-        if(mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")){
+        if (mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")) {
           mappedStudentRecord.setLegalLastName("NULL");
         }
         mappedStudentRecord.setCreateDate(LocalDateTime.now());
@@ -81,7 +81,7 @@ public class StudentService {
     }
     if (!studentEntities.isEmpty()) {
       try {
-        studentRepository.saveAll(studentEntities);
+        studentPersistenceService.saveStudents(studentEntities);
         log.debug("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
       } catch (final Exception ex) {
         log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
