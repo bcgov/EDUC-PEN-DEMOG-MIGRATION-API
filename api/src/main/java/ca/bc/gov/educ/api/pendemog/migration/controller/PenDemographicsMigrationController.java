@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
-import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,9 +26,8 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   }
 
   @Override
-  public ResponseEntity<Void> kickOffMigrationProcess(String startFromStudNoLike) {
-    var startFromLetter = startFromStudNoLike == null ? "10000" : startFromStudNoLike;
-    executorService.execute(() -> penDemographicsMigrationService.processDataMigration(startFromLetter));
+  public ResponseEntity<Void> kickOffMigrationProcess() {
+    executorService.execute(penDemographicsMigrationService::processDataMigration);
     return ResponseEntity.noContent().build();
   }
 

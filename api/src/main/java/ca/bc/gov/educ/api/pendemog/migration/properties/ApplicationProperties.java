@@ -15,5 +15,4 @@ import org.springframework.stereotype.Component;
 @Setter
 public class ApplicationProperties {
 
-
 }

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 public class PenDemographicsMigrationService implements Closeable {
 
   private final ExecutorService executorService = Executors.newFixedThreadPool(100);
-  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(30);
+  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(48);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -83,26 +84,20 @@ public class PenDemographicsMigrationService implements Closeable {
   /**
    * Process data migration.
    *
-   * @param startLetter the start letter
    */
-  public void processDataMigration(String startLetter) {
-    processDemogDataMigration(startLetter);
+  @Transactional
+  public void processDataMigration() {
+    processDemogDataMigration();
     processMigrationOfTwins();
     processMigrationOfMerges();
   }
 
 
-  private void processDemogDataMigration(String startFromStudNoLike) {
+  private void processDemogDataMigration() {
     List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
-    boolean isProcessingTillCurrentAlphabetDone = true;
     for (String studNo : studNoSet) {
-     /* if (isProcessingTillCurrentAlphabetDone && studNo.equalsIgnoreCase(startFromStudNoLike)) {
-        isProcessingTillCurrentAlphabetDone = false;
-      }
-      if (!isProcessingTillCurrentAlphabetDone) {*/
       final Callable<List<Future<Boolean>>> callable = () -> processDemog(studNo);
       futures.add(queryExecutors.submit(callable));
-      //}
     }
     if (!futures.isEmpty()) {
       log.info("waiting for future results. futures size is :: {}", futures.size());
@@ -197,33 +192,30 @@ public class PenDemographicsMigrationService implements Closeable {
       log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       var mergedStudent = studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
-        StudentMergeEntity mergeFromEntity = new StudentMergeEntity();
-        mergeFromEntity.setStudentMergeSourceCode("MINISTRY"); // mapped from MERGE_TO_USER_BANE of PEN_DEMOG, default value, currently it is
-        mergeFromEntity.setStudentMergeDirectionCode("FROM");
-        mergeFromEntity.setStudentID(originalStudent.get().getStudentID()); // TO
-        mergeFromEntity.setMergeStudent(mergedStudent.get()); // FROM
-        mergeFromEntity.setCreateDate(LocalDateTime.now());
-        mergeFromEntity.setUpdateDate(LocalDateTime.now());
-        mergeFromEntity.setCreateUser(originalStudent.get().getCreateUser());
-        mergeFromEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+        StudentMergeEntity mergeFromEntity = createMergeEntity(mergedStudent.get(), originalStudent.get().getStudentID(), "FROM");
         log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
         mergeFromEntities.add(mergeFromEntity);
 
-        StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
-        mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
-        mergeTOEntity.setStudentMergeDirectionCode("TO");
-        mergeTOEntity.setStudentID(mergedStudent.get().getStudentID()); // FROM
-        mergeTOEntity.setMergeStudent(originalStudent.get()); // TO
-        mergeTOEntity.setCreateDate(LocalDateTime.now());
-        mergeTOEntity.setUpdateDate(LocalDateTime.now());
-        mergeTOEntity.setCreateUser(originalStudent.get().getCreateUser());
-        mergeTOEntity.setUpdateUser(originalStudent.get().getUpdateUser());
+        StudentMergeEntity mergeTOEntity = createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO");
         log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
         mergeTOEntities.add(mergeTOEntity);
       } else {
         log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
       }
     };
+  }
+
+  private StudentMergeEntity createMergeEntity(StudentEntity mergeStudent, UUID studentId, String direction) {
+    StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
+    mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
+    mergeTOEntity.setStudentMergeDirectionCode(direction);
+    mergeTOEntity.setStudentID(studentId);
+    mergeTOEntity.setMergeStudent(mergeStudent);
+    mergeTOEntity.setCreateDate(LocalDateTime.now());
+    mergeTOEntity.setUpdateDate(LocalDateTime.now());
+    mergeTOEntity.setCreateUser(mergeStudent.getCreateUser());
+    mergeTOEntity.setUpdateUser(mergeStudent.getUpdateUser());
+    return mergeTOEntity;
   }
 
   public void processMigrationOfTwins() {
