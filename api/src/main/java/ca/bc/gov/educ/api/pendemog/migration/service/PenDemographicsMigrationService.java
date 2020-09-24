@@ -2,6 +2,7 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
+import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
 import com.google.common.collect.Lists;
 import lombok.AccessLevel;
@@ -29,8 +30,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
-  private final ExecutorService executorService = Executors.newFixedThreadPool(40);
-  private final ExecutorService queryExecutors = Executors.newFixedThreadPool(35);
+  private final ExecutorService executorService;
+  private final ExecutorService queryExecutors;
+  private final ApplicationProperties applicationProperties;
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -70,7 +72,8 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentService studentService) {
+  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentService studentService) {
+    this.applicationProperties = applicationProperties;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
     this.studentRepository = studentRepository;
     this.studentMergeRepository = studentMergeRepository;
@@ -78,12 +81,13 @@ public class PenDemographicsMigrationService implements Closeable {
     this.penTwinRepository = penTwinRepository;
     this.studentTwinRepository = studentTwinRepository;
     this.studentService = studentService;
+    executorService = Executors.newFixedThreadPool(applicationProperties.getExecutorThreads());
+    queryExecutors = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
 
 
   /**
    * Process data migration.
-   *
    */
   @Transactional
   public void processDataMigration() {

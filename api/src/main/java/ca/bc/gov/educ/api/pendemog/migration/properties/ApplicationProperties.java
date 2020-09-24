@@ -15,4 +15,8 @@ import org.springframework.stereotype.Component;
 @Setter
 public class ApplicationProperties {
 
+  @Value("${threads.query}")
+  private Integer queryThreads;
+  @Value("${threads.executor}")
+  private Integer executorThreads;
 }
