@@ -30,8 +30,8 @@ public class StudentTwinService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 10, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveTwinnedEntities(List<StudentTwinEntity> twinEntities){
-    if (twinEntities.size() > 5000) {
-      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 5000);
+    if (twinEntities.size() > 1000) {
+      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 1000);
       log.info("created subset of {} twinned entities", subSets.size());
       subSets.forEach(studentTwinEntities -> getStudentTwinRepository().saveAll(studentTwinEntities));
     } else {
