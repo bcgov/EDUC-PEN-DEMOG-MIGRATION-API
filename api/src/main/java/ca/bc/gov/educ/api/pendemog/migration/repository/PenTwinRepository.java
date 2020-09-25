@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface PenTwinRepository extends CrudRepository<PenTwinsEntity, PenTwinsPK> {
   List<PenTwinsEntity> findAll();
+  List<PenTwinsEntity> findByPenTwin1Like(String penTwinLike);
 }

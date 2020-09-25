@@ -8,10 +8,8 @@ import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
@@ -31,8 +29,6 @@ import java.util.stream.Collectors;
 public class PenDemographicsMigrationService implements Closeable {
 
   private final ExecutorService executorService;
-  private final ExecutorService queryExecutors;
-  private final ApplicationProperties applicationProperties;
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -48,7 +44,8 @@ public class PenDemographicsMigrationService implements Closeable {
   private final PenTwinRepository penTwinRepository;
   @Getter(AccessLevel.PRIVATE)
   private final StudentTwinRepository studentTwinRepository;
-
+  @Getter(AccessLevel.PRIVATE)
+  private final StudentTwinService studentTwinService;
   private final StudentService studentService;
 
   private final Set<String> studNoSet = new HashSet<>();
@@ -72,24 +69,22 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentService studentService) {
-    this.applicationProperties = applicationProperties;
+  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
     this.studentRepository = studentRepository;
     this.studentMergeRepository = studentMergeRepository;
     this.penMergeRepository = penMergeRepository;
     this.penTwinRepository = penTwinRepository;
     this.studentTwinRepository = studentTwinRepository;
+    this.studentTwinService = studentTwinService;
     this.studentService = studentService;
-    executorService = Executors.newFixedThreadPool(applicationProperties.getExecutorThreads());
-    queryExecutors = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
+    executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
 
 
   /**
    * Process data migration.
    */
-  @Transactional
   public void processDataMigration() {
     processDemogDataMigration();
     processMigrationOfTwins();
@@ -98,24 +93,16 @@ public class PenDemographicsMigrationService implements Closeable {
 
 
   private void processDemogDataMigration() {
-    List<Future<List<Future<Boolean>>>> futures = new CopyOnWriteArrayList<>();
+    List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (String studNo : studNoSet) {
-      final Callable<List<Future<Boolean>>> callable = () -> processDemog(studNo);
-      futures.add(queryExecutors.submit(callable));
+      final Callable<Boolean> callable = () -> processDemog(studNo);
+      futures.add(executorService.submit(callable));
     }
     if (!futures.isEmpty()) {
       log.info("waiting for future results. futures size is :: {}", futures.size());
       for (var future : futures) {
         try {
-          val innerFutures = future.get();
-          if (innerFutures != null && !innerFutures.isEmpty()) {
-            for (var innerFuture : innerFutures)
-              try {
-                innerFuture.get();
-              } catch (ExecutionException | InterruptedException e) {
-                log.warn("Error waiting for result", e);
-              }
-          }
+          future.get();
         } catch (InterruptedException | ExecutionException e) {
           log.warn("Error waiting for result", e);
         }
@@ -124,8 +111,7 @@ public class PenDemographicsMigrationService implements Closeable {
     log.info("All pen demog records have been processed, moving to next phase");
   }
 
-  private List<Future<Boolean>> processDemog(String studNoLike) {
-    List<Future<Boolean>> futures = new ArrayList<>();
+  private Boolean processDemog(String studNoLike) {
     log.debug("Now Processing studNo starting with :: {}", studNoLike);
     List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%");
     if (!penDemographicsEntities.isEmpty()) {
@@ -136,8 +122,7 @@ public class PenDemographicsMigrationService implements Closeable {
           studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
       if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
         log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
-        final Callable<Boolean> callable = () -> studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
-        futures.add(executorService.submit(callable));
+        return studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
       } else {
         log.debug("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
       }
@@ -146,7 +131,7 @@ public class PenDemographicsMigrationService implements Closeable {
       log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
     }
 
-    return futures;
+    return true;
   }
 
   public void processMigrationOfMerges() {
@@ -160,8 +145,8 @@ public class PenDemographicsMigrationService implements Closeable {
       List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
       log.info("created subset of {} merge from  entities", mergeFromSubset.size());
       log.info("created subset of {} merge to  entities", mergeToSubset.size());
-      mergeFromSubset.parallelStream().forEach(entities -> getStudentMergeRepository().saveAll(entities));
-      mergeToSubset.parallelStream().forEach(entities -> getStudentMergeRepository().saveAll(entities));
+      mergeFromSubset.forEach(getStudentMergeRepository()::saveAll);
+      mergeToSubset.forEach(getStudentMergeRepository()::saveAll);
     }
     log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records to DB", mergeFromEntities.size(), mergeTOEntities.size());
   }
@@ -223,60 +208,88 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   public void processMigrationOfTwins() {
-    //TWIN_REASON_CODE=PENMATCH
     log.info("Starting data migration of Twins");
-    List<StudentTwinEntity> twinEntities = new ArrayList<>();
-    var penTwins = getPenTwinRepository().findAll();
-    log.info("found {} records .", penTwins.size());
-    penTwins.parallelStream().forEach(createTwinEntities(twinEntities));
-    if (!twinEntities.isEmpty()) {
-      log.info("created {} twinned entities", twinEntities.size());
-      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 1000);
-      log.info("created subset of {} twinned entities", subSets.size());
-      subSets.parallelStream().forEach(studentTwinEntities -> getStudentTwinRepository().saveAll(studentTwinEntities));
-      log.info("saved all twinned entities {}", twinEntities.size());
+    List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
+    for (String studNo : studNoSet) {
+      final Callable<Boolean> callable = () -> processTwinForPenLike(studNo);
+      futures.add(executorService.submit(callable));
     }
-  }
-
-  private Consumer<PenTwinsEntity> createTwinEntities(List<StudentTwinEntity> twinEntities) {
-    return penTwinsEntity -> {
-      var studentEntityOptional1 = getStudentRepository().findStudentEntityByPen(penTwinsEntity.getPenTwin1().trim());
-      var studentEntityOptional2 = getStudentRepository().findStudentEntityByPen(penTwinsEntity.getPenTwin2().trim());
-      if (studentEntityOptional1.isPresent() && studentEntityOptional2.isPresent()) {
-        StudentTwinEntity studentTwinEntity1 = new StudentTwinEntity();
-        studentTwinEntity1.setCreateDate(LocalDateTime.now());
-        studentTwinEntity1.setUpdateDate(LocalDateTime.now());
-        if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
-          studentTwinEntity1.setCreateUser(penTwinsEntity.getTwinUserId().trim());
-          studentTwinEntity1.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
-        } else {
-          studentTwinEntity1.setCreateUser("PEN_DEMOG_MIGRATION_API");
-          studentTwinEntity1.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+    if (!futures.isEmpty()) {
+      log.info("waiting for future results. futures size is :: {}", futures.size());
+      int index = 1;
+      for (var future : futures) {
+        try {
+          future.get();
+          log.info("Total completed is :: {}", index++);
+        } catch (InterruptedException | ExecutionException e) {
+          log.warn("Error waiting for result", e);
         }
-        studentTwinEntity1.setStudentTwinReasonCode("PENMATCH");
-        studentTwinEntity1.setStudentID(studentEntityOptional1.get().getStudentID());
-        studentTwinEntity1.setTwinStudent(studentEntityOptional2.get());
-
-       /* StudentTwinEntity studentTwinEntity2 = new StudentTwinEntity();
-        studentTwinEntity2.setCreateDate(LocalDateTime.now());
-        studentTwinEntity2.setUpdateDate(LocalDateTime.now());
-        if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
-          studentTwinEntity2.setCreateUser(penTwinsEntity.getTwinUserId().trim());
-          studentTwinEntity2.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
-        } else {
-          studentTwinEntity2.setCreateUser("PEN_DEMOG_MIGRATION_API");
-          studentTwinEntity2.setUpdateUser("PEN_DEMOG_MIGRATION_API");
-        }
-        studentTwinEntity2.setStudentTwinReasonCode("PENMATCH");
-        studentTwinEntity2.setStudentID(studentEntityOptional2.get().getStudentID());
-        studentTwinEntity2.setTwinStudent(studentEntityOptional1.get());*/
-        twinEntities.add(studentTwinEntity1);
-        //twinEntities.add(studentTwinEntity2);
-      } else {
-        log.error("Student entity could not be found for twin 1 pen :: {} and twin 2 pen :: {}", penTwinsEntity.getPenTwin1().trim(), penTwinsEntity.getPenTwin2().trim());
       }
-    };
+    }
+    log.info("All pen twin records have been processed, moving to next phase");
+    //TWIN_REASON_CODE=PENMATCH
+
   }
+
+  private Boolean processTwinForPenLike(String penLike) {
+
+    List<StudentTwinEntity> twinEntities = new CopyOnWriteArrayList<>();
+    var penTwins = getPenTwinRepository().findByPenTwin1Like(penLike + "%");
+    var studentTwins = getStudentRepository().findByPenLike(penLike + "%");
+    var studentTwinMap = studentTwins.stream()
+        .collect(Collectors.toMap(StudentEntity::getPen, studentEntity -> studentEntity));
+    log.info("found {} records .", penTwins.size());
+    if (!penTwins.isEmpty()) {
+      penTwins.forEach(penTwinsEntity -> {
+        StudentEntity student1;
+        StudentEntity student2;
+        var studentEntity1 = Optional.ofNullable(studentTwinMap.get(penTwinsEntity.getPenTwin1().trim()));
+        if (studentEntity1.isEmpty()) {
+          studentEntity1 = getStudentRepository().findStudentEntityByPen(penTwinsEntity.getPenTwin1().trim());
+        }
+        if (studentEntity1.isPresent()) {
+          var studentEntity2 = Optional.ofNullable(studentTwinMap.get(penTwinsEntity.getPenTwin2().trim()));
+          if (studentEntity2.isEmpty()) {
+            studentEntity2 = getStudentRepository().findStudentEntityByPen(penTwinsEntity.getPenTwin2().trim());
+          }
+          if (studentEntity2.isPresent()) {
+            student1 = studentEntity1.get();
+            student2 = studentEntity2.get();
+            Optional<StudentTwinEntity> dbEntity = getStudentTwinRepository().findByStudentIDAndTwinStudent(student1.getStudentID(), student2);
+            if (dbEntity.isEmpty()) {
+              StudentTwinEntity studentTwinEntity = new StudentTwinEntity();
+              studentTwinEntity.setCreateDate(LocalDateTime.now());
+              studentTwinEntity.setUpdateDate(LocalDateTime.now());
+              if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
+                studentTwinEntity.setCreateUser(penTwinsEntity.getTwinUserId().trim());
+                studentTwinEntity.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
+              } else {
+                studentTwinEntity.setCreateUser("PEN_DEMOG_MIGRATION_API");
+                studentTwinEntity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+              }
+              studentTwinEntity.setStudentTwinReasonCode("PENMATCH");
+              studentTwinEntity.setStudentID(student1.getStudentID());
+              studentTwinEntity.setTwinStudent(student2);
+              twinEntities.add(studentTwinEntity);
+            } else {
+              log.debug("Record is present. for PEN :: {} and PEN :: {}", penTwinsEntity.getPenTwin1().trim(), penTwinsEntity.getPenTwin2().trim());
+            }
+          } else {
+            log.info("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin2().trim());
+          }
+        } else {
+          log.info("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin1().trim());
+        }
+
+      });
+      if (!twinEntities.isEmpty()) {
+        log.info("created {} twinned entities", twinEntities.size());
+        getStudentTwinService().saveTwinnedEntities(twinEntities);
+      }
+    }
+    return true;
+  }
+
 
   @Override
   public void close() {
