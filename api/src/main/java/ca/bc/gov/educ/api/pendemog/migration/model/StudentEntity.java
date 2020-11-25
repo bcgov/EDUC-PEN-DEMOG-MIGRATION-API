@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "STUDENT")
+@Table(name = "API_STUDENT.STUDENT")
 @Data
 @DynamicUpdate
 @JsonIgnoreProperties(ignoreUnknown = true)
