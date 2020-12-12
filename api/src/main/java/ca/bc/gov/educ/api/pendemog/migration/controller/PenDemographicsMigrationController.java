@@ -1,6 +1,7 @@
 package ca.bc.gov.educ.api.pendemog.migration.controller;
 
 import ca.bc.gov.educ.api.pendemog.migration.endpoint.PenDemographicsMigrationEndpoint;
+import ca.bc.gov.educ.api.pendemog.migration.service.PenDemographicsLocalIDService;
 import ca.bc.gov.educ.api.pendemog.migration.service.PenDemographicsMigrationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +19,24 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   private final DataSource dataSource;
   private final ExecutorService executorService = Executors.newSingleThreadExecutor();
   private final PenDemographicsMigrationService penDemographicsMigrationService;
+  private final PenDemographicsLocalIDService penDemographicsLocalIDService;
 
   @Autowired
-  public PenDemographicsMigrationController(DataSource dataSource, PenDemographicsMigrationService penDemographicsMigrationService) {
+  public PenDemographicsMigrationController(DataSource dataSource, PenDemographicsMigrationService penDemographicsMigrationService, PenDemographicsLocalIDService penDemographicsLocalIDService) {
     this.dataSource = dataSource;
     this.penDemographicsMigrationService = penDemographicsMigrationService;
+    this.penDemographicsLocalIDService = penDemographicsLocalIDService;
   }
 
   @Override
   public ResponseEntity<Void> kickOffMigrationProcess() {
     executorService.execute(penDemographicsMigrationService::processDataMigration);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> kickOffLocalIDProcess() {
+    executorService.execute(penDemographicsLocalIDService::processLocalIDs);
     return ResponseEntity.noContent().build();
   }
 
