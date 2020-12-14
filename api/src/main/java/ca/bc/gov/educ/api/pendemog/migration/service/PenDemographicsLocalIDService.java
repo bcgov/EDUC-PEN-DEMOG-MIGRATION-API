@@ -71,19 +71,20 @@ public class PenDemographicsLocalIDService implements Closeable {
   private void processDemogDataMigration() {
     List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (String studNo : studNoSet) {
-      final Callable<Boolean> callable = () -> processDemog(studNo);
-      futures.add(executorService.submit(callable));
+//      final Callable<Boolean> callable = () -> processDemog(studNo);
+//      futures.add(executorService.submit(callable));
+      processDemog(studNo);
     }
-    if (!futures.isEmpty()) {
-      log.info("waiting for future results. futures size is :: {}", futures.size());
-      for (var future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException | ExecutionException e) {
-          log.warn("Error waiting for result", e);
-        }
-      }
-    }
+//    if (!futures.isEmpty()) {
+//      log.info("waiting for future results. futures size is :: {}", futures.size());
+//      for (var future : futures) {
+//        try {
+//          future.get();
+//        } catch (InterruptedException | ExecutionException e) {
+//          log.warn("Error waiting for result", e);
+//        }
+//      }
+//    }
     log.info("All pen demog records have been processed, moving to next phase");
   }
 
