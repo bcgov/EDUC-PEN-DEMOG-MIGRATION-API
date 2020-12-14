@@ -1,10 +1,9 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
-import ca.bc.gov.educ.api.pendemog.migration.model.*;
+import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
-import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +14,10 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * The type Pen demographics migration service.
@@ -34,21 +30,7 @@ public class PenDemographicsLocalIDService implements Closeable {
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
-  @Getter(AccessLevel.PRIVATE)
-  private final StudentRepository studentRepository;
-
-  @Getter(AccessLevel.PRIVATE)
-  private final StudentMergeRepository studentMergeRepository;
-
-  @Getter(AccessLevel.PRIVATE)
-  private final PenMergeRepository penMergeRepository;
-  @Getter(AccessLevel.PRIVATE)
-  private final PenTwinRepository penTwinRepository;
-  @Getter(AccessLevel.PRIVATE)
-  private final StudentTwinRepository studentTwinRepository;
-  @Getter(AccessLevel.PRIVATE)
-  private final StudentTwinService studentTwinService;
-  private final StudentService studentService;
+  private final PENDemogPersistenceService penDemogPersistenceService;
 
   private final Set<String> studNoSet = new HashSet<>();
 
@@ -71,15 +53,9 @@ public class PenDemographicsLocalIDService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsLocalIDService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+  public PenDemographicsLocalIDService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, final PENDemogPersistenceService penDemogPersistenceService) {
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
-    this.studentRepository = studentRepository;
-    this.studentMergeRepository = studentMergeRepository;
-    this.penMergeRepository = penMergeRepository;
-    this.penTwinRepository = penTwinRepository;
-    this.studentTwinRepository = studentTwinRepository;
-    this.studentTwinService = studentTwinService;
-    this.studentService = studentService;
+    this.penDemogPersistenceService = penDemogPersistenceService;
     executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
 
@@ -118,8 +94,9 @@ public class PenDemographicsLocalIDService implements Closeable {
       log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
       for(PenDemographicsEntity demog: penDemographicsEntities){
         demog.setLocalID(RandomStringUtils.randomAlphanumeric(RandomUtils.nextInt(8,12)).toUpperCase());
-        getPenDemographicsMigrationRepository().save(demog);
       }
+
+      penDemogPersistenceService.savePENDemogs(penDemographicsEntities);
 
       return true;
     } else {
@@ -128,11 +105,6 @@ public class PenDemographicsLocalIDService implements Closeable {
     }
 
     return true;
-  }
-
-  public static void main(String[] args) {
-    String s = RandomStringUtils.randomAlphanumeric(RandomUtils.nextInt(8,12)).toUpperCase();
-    System.out.println(s);
   }
 
   @Override
