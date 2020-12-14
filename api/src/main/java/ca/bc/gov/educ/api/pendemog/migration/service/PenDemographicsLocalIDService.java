@@ -93,10 +93,8 @@ public class PenDemographicsLocalIDService implements Closeable {
     if (!penDemographicsEntities.isEmpty()) {
       log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
       for(PenDemographicsEntity demog: penDemographicsEntities){
-        demog.setLocalID(RandomStringUtils.randomAlphanumeric(RandomUtils.nextInt(8,12)).toUpperCase());
+        penDemogPersistenceService.savePENDemog(demog, RandomStringUtils.randomAlphanumeric(RandomUtils.nextInt(8,12)).toUpperCase());
       }
-
-      penDemogPersistenceService.savePENDemogs(penDemographicsEntities);
 
       return true;
     } else {
@@ -106,6 +104,7 @@ public class PenDemographicsLocalIDService implements Closeable {
 
     return true;
   }
+
 
   @Override
   public void close() {
