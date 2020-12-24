@@ -10,6 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Immutable
 @Table(name = "PEN_AUDIT@PENLINK.WORLD")
-public class PenAuditEntity {
+public class PenAuditEntity implements Serializable {
 
   @Id
   @Column(name = "ACTIVITY_DATE")
