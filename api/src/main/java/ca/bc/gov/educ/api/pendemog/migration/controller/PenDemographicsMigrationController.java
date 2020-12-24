@@ -41,6 +41,12 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   }
 
   @Override
+  public ResponseEntity<Void> kickOffAuditDataMigrationProcess() {
+    executorService.execute(penDemographicsMigrationService::processDemogAuditDataMigration);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
   public ResponseEntity<Void> kickOffMergesMigrationProcess() {
     executorService.execute(penDemographicsMigrationService::processMigrationOfMerges);
     return ResponseEntity.noContent().build();
@@ -53,15 +59,11 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   }
 
   public ResponseEntity<Void> testQuery(String sql) {
-    try {
+    try(var resultSet = dataSource.getConnection().prepareStatement(sql).executeQuery()) {
       log.info(sql);
-      var statement = dataSource.getConnection().prepareStatement(sql);
-      var resultSet = statement.executeQuery();
       while (resultSet.next()) {
         log.info("result is :: {}", resultSet.getObject(1));
       }
-      resultSet.close();
-      statement.close();
     } catch (final Exception e) {
       log.error("Exception :: {}", e, e);
     }

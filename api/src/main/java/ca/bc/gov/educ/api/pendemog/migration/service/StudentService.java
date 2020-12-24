@@ -2,11 +2,16 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
+import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
+import ca.bc.gov.educ.api.pendemog.migration.mappers.PenAuditStudentHistoryMapper;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
+import ca.bc.gov.educ.api.pendemog.migration.model.PenAuditEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
+import ca.bc.gov.educ.api.pendemog.migration.model.StudentHistoryEntity;
 import ca.bc.gov.educ.api.pendemog.migration.repository.StudentRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -27,6 +32,7 @@ import java.util.stream.Collectors;
 public class StudentService {
   private final Set<String> gradeCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
+  private static final PenAuditStudentHistoryMapper PEN_AUDIT_STUDENT_HISTORY_MAPPER = PenAuditStudentHistoryMapper.mapper;
   private final StudentPersistenceService studentPersistenceService;
 
   @Autowired
@@ -71,8 +77,6 @@ public class StudentService {
         if (mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")) {
           mappedStudentRecord.setLegalLastName("NULL");
         }
-        mappedStudentRecord.setCreateDate(LocalDateTime.now());
-        mappedStudentRecord.setUpdateDate(LocalDateTime.now());
         studentEntities.add(mappedStudentRecord);
       } else {
         log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for studNoLike {}", index, studNoLike);
@@ -92,6 +96,56 @@ public class StudentService {
     return true;
   }
 
+  @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
+  public boolean processDemographicsAuditEntities(List<PenAuditEntity> penAuditEntities, String penLike) {
+    var currentLotSize = penAuditEntities.size();
+    List<StudentHistoryEntity> studentHistoryEntities = new ArrayList<>();
+    var index = 1;
+    for (var penAuditEntity : penAuditEntities) {
+      if (penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
+        log.debug("Total Records :: {} , processing pen :: {} at index {}, for penLike {}", currentLotSize, penAuditEntity.getPen(), index, penLike);
+        StudentEntity studentEntity = studentPersistenceService.getStudentByPen(penAuditEntity.getPen().trim());
+        if (studentEntity != null && studentEntity.getStudentID() != null) {
+          var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
+          studentHistory.setStudentID(studentEntity.getStudentID());
+          studentHistory.setHistoryActivityCode(setHistoryActivityCode(penAuditEntity.getAuditCode()));
+          if (studentHistory.getGradeCode() != null && !gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
+            log.debug("updated grade code to null from :: {} at index {}, for penLike {}", studentHistory.getGradeCode(), index, penLike);
+            studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
+          }
+          if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
+            studentHistory.setLegalLastName("NULL");
+          }
+          studentHistoryEntities.add(studentHistory);
+        } else {
+          log.error("No Student record found for pen :: {}", penAuditEntity.getPen());
+        }
+        index++;
+      } else {
+        log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for penLike {}", index, penLike);
+      }
+    }
+
+    if (!studentHistoryEntities.isEmpty()) {
+      try {
+        studentPersistenceService.saveStudentHistory(studentHistoryEntities);
+        log.debug("processing complete for penLike :: {}, persisted {} records into DB", penLike, studentHistoryEntities.size());
+      } catch (final Exception ex) {
+        log.error("Exception while persisting records for penLike :: {}, records into DB , exception is :: {}", penLike, ex);
+        throw ex;
+      }
+    }
+    log.info("total number of history records processed :: {}", CounterUtil.historyProcessCounter.incrementAndGet());
+    return true;
+  }
+
+  private String setHistoryActivityCode(String auditCode) {
+    if (auditCode != null) {
+      return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.USER_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
+    }
+    return HistoryActivityCode.USER_NEW.getCode();
+  }
+
   private String getFormattedDOB(String dob) {
     var year = dob.substring(0, 4);
     var month = dob.substring(4, 6);
@@ -99,5 +153,4 @@ public class StudentService {
 
     return year.concat("-").concat(month).concat("-").concat(day);
   }
-
 }

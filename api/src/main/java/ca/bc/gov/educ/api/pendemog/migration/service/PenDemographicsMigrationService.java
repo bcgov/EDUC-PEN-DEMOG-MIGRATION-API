@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +34,13 @@ public class PenDemographicsMigrationService implements Closeable {
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
   @Getter(AccessLevel.PRIVATE)
+  private final PenAuditRepository penAuditRepository;
+
+  @Getter(AccessLevel.PRIVATE)
   private final StudentRepository studentRepository;
+
+  @Getter(AccessLevel.PRIVATE)
+  private final StudentHistoryRepository studentHistoryRepository;
 
   @Getter(AccessLevel.PRIVATE)
   private final StudentMergeRepository studentMergeRepository;
@@ -69,9 +76,11 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, StudentRepository studentRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
+    this.penAuditRepository = penAuditRepository;
     this.studentRepository = studentRepository;
+    this.studentHistoryRepository = studentHistoryRepository;
     this.studentMergeRepository = studentMergeRepository;
     this.penMergeRepository = penMergeRepository;
     this.penTwinRepository = penTwinRepository;
@@ -87,12 +96,72 @@ public class PenDemographicsMigrationService implements Closeable {
    */
   public void processDataMigration() {
     processDemogDataMigration();
+    processDemogAuditDataMigration();
     processMigrationOfTwins();
     processMigrationOfMerges();
   }
 
+  public void processDemogAuditDataMigration() {
+    List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
+    for (String studNo : studNoSet) {
+      final Callable<Boolean> callable = () -> processDemogAudit(studNo);
+      futures.add(executorService.submit(callable));
+    }
+    if (!futures.isEmpty()) {
+      log.info("waiting for future results. futures size is :: {}", futures.size());
+      for (var future : futures) {
+        try {
+          future.get();
+        } catch (InterruptedException | ExecutionException e) {
+          Thread.currentThread().interrupt();
+          log.warn("Error waiting for result", e);
+        }
+      }
+    }
+    log.info("All pen demog audit records have been processed.");
+  }
 
-  private void processDemogDataMigration() {
+  private Boolean processDemogAudit(String penLike) {
+    log.debug("Now Processing penLike starting with :: {}", penLike);
+    List<PenAuditEntity> filteredAuditEntities = new CopyOnWriteArrayList<>();
+    var penAuditEntities = new CopyOnWriteArrayList<>(getPenAuditRepository().findByPenLike(penLike + "%"));
+    if (!penAuditEntities.isEmpty()) {
+      log.debug("Found {} records from penLike demog audit for Stud No :: {}", penAuditEntities.size(), penLike);
+      List<StudentHistoryEntity> studentHistoryEntities = new CopyOnWriteArrayList<>(getStudentHistoryRepository().findAllByPenLike(penLike + "%"));
+      log.debug("Found {} records from student history for penLike :: {}", studentHistoryEntities.size(), penLike);
+      if (!studentHistoryEntities.isEmpty()) {
+        for (var studentHistory : studentHistoryEntities) {
+          for (var penAuditEntity : penAuditEntities) {
+            if (StringUtils.equals(penAuditEntity.getPen(), studentHistory.getPen())
+                && penAuditEntity.getDob().isEqual(studentHistory.getDob())
+                && penAuditEntity.getActivityDate().isEqual(studentHistory.getCreateDate())
+                && StringUtils.equals(penAuditEntity.getCreateUser(),studentHistory.getCreateUser())) {
+              penAuditEntities.remove(penAuditEntity);
+              studentHistoryEntities.remove(studentHistory);
+            }else {
+              filteredAuditEntities.add(penAuditEntity);
+            }
+          }
+        }
+      } else {
+        filteredAuditEntities = penAuditEntities;
+      }
+      if (!filteredAuditEntities.isEmpty()) {
+        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", filteredAuditEntities.size(), penLike);
+        return studentService.processDemographicsAuditEntities(filteredAuditEntities, penLike);
+      } else {
+        log.info("Nothing to process for :: {} marking complete. total number of history records processed :: {}", penLike, CounterUtil.historyProcessCounter.incrementAndGet());
+      }
+    } else {
+      log.debug("No Records found for Stud No like :: {} in PEN_AUDIT so skipped.", penLike);
+      log.info("total number of history records processed :: {}", CounterUtil.historyProcessCounter.incrementAndGet());
+    }
+
+    return true;
+  }
+
+
+  public void processDemogDataMigration() {
     List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (String studNo : studNoSet) {
       final Callable<Boolean> callable = () -> processDemog(studNo);
@@ -104,6 +173,7 @@ public class PenDemographicsMigrationService implements Closeable {
         try {
           future.get();
         } catch (InterruptedException | ExecutionException e) {
+          Thread.currentThread().interrupt();
           log.warn("Error waiting for result", e);
         }
       }

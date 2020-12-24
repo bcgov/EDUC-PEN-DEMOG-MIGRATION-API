@@ -6,8 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 
-import javax.persistence.*;
-import java.util.Date;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
  * The type Pen demographics entity.
@@ -70,13 +73,17 @@ public class PenDemographicsEntity {
   @Column(name = "PEN_MINCODE")
   private String mincode;
 
-  @Temporal(TemporalType.TIMESTAMP)
   @Column(name = "CREATE_DATE")
-  private Date createDate;
+  private LocalDateTime createDate;
 
   @Column(name = "CREATE_USER_NAME")
   private String createUserName;
 
+  @Column(name = "UPDATE_DATE")
+  private LocalDateTime updateDate;
+
+  @Column(name = "UPDATE_USER_NAME")
+  private String updateUserName;
   //below are added for further data pull
 
   @Column(name = "STUD_TRUE_NO")

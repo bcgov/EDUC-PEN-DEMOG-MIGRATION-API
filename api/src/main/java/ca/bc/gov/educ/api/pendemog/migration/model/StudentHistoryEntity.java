@@ -2,28 +2,33 @@ package ca.bc.gov.educ.api.pendemog.migration.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
 import javax.persistence.*;
-import javax.validation.constraints.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "API_STUDENT.STUDENT")
+@Table(name = "STUDENT_HISTORY")
 @Data
-@DynamicUpdate
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StudentEntity {
+public class StudentHistoryEntity {
   @Id
   @GeneratedValue(generator = "UUID")
   @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator", parameters = {
           @Parameter(name = "uuid_gen_strategy_class", value = "org.hibernate.id.uuid.CustomVersionOneStrategy")})
-  @Column(name = "STUDENT_ID", unique = true, updatable = false, columnDefinition = "BINARY(16)")
+  @Column(name = "STUDENT_HISTORY_ID", unique = true, updatable = false, columnDefinition = "BINARY(16)")
+  UUID studentHistoryID;
+  @NotNull(message = "studentID cannot be null")
+  @Column(name = "STUDENT_ID")
   UUID studentID;
+  @NotNull(message = "historyActivityCode cannot be null")
+  @Column(name = "HISTORY_ACTIVITY_CODE")
+  String historyActivityCode;
   @NotNull(message = "pen cannot be null")
   @Column(name = "PEN")
   String pen;
@@ -36,7 +41,6 @@ public class StudentEntity {
   @Column(name = "DOB")
   @PastOrPresent
   LocalDate dob;
-  @NotNull(message = "Sex Code can not be null.")
   @Column(name = "SEX_CODE")
   String sexCode;
   @Column(name = "GENDER_CODE")
@@ -47,7 +51,6 @@ public class StudentEntity {
   String usualMiddleNames;
   @Column(name = "USUAL_LAST_NAME")
   String usualLastName;
-  @Email(message = "Email must be valid email address")
   @Column(name = "EMAIL")
   String email;
   @NotNull(message = "Email verified cannot be null")
@@ -56,8 +59,6 @@ public class StudentEntity {
   @Column(name = "DECEASED_DATE")
   @PastOrPresent
   LocalDate deceasedDate;
-  @Size(max = 7)
-  @Pattern(regexp = "^([A-Z]\\d[A-Z]\\d[A-Z]\\d|)$", message = "Invalid postal code")
   @Column(name = "POSTAL_CODE")
   String postalCode;
   @Column(name = "MINCODE")
@@ -82,5 +83,4 @@ public class StudentEntity {
   String updateUser;
   @Column(name = "UPDATE_DATE")
   LocalDateTime updateDate;
-
 }

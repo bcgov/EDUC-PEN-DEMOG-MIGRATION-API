@@ -14,6 +14,9 @@ public interface PenDemographicsMigrationEndpoint {
   @GetMapping("/localids")
   ResponseEntity<Void> kickOffLocalIDProcess();
 
+  @GetMapping("/audit")
+  ResponseEntity<Void> kickOffAuditDataMigrationProcess();
+
   @GetMapping("/merges")
   ResponseEntity<Void> kickOffMergesMigrationProcess();
 
