@@ -108,7 +108,6 @@ public class StudentService {
         if (studentEntity != null && studentEntity.getStudentID() != null) {
           var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
           studentHistory.setStudentID(studentEntity.getStudentID());
-          studentHistory.setHistoryActivityCode(setHistoryActivityCode(penAuditEntity.getAuditCode()));
           if (studentHistory.getGradeCode() != null && !gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
             log.debug("updated grade code to null from :: {} at index {}, for penLike {}", studentHistory.getGradeCode(), index, penLike);
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
@@ -139,12 +138,6 @@ public class StudentService {
     return true;
   }
 
-  private String setHistoryActivityCode(String auditCode) {
-    if (auditCode != null) {
-      return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.USER_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
-    }
-    return HistoryActivityCode.USER_NEW.getCode();
-  }
 
   private String getFormattedDOB(String dob) {
     var year = dob.substring(0, 4);

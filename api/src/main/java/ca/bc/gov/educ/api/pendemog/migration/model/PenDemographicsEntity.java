@@ -74,16 +74,16 @@ public class PenDemographicsEntity {
   private String mincode;
 
   @Column(name = "CREATE_DATE")
-  private LocalDateTime createDate;
+  private String createDate;
 
   @Column(name = "CREATE_USER_NAME")
-  private String createUserName;
+  private String createUser;
 
   @Column(name = "UPDATE_DATE")
-  private LocalDateTime updateDate;
+  private String updateDate;
 
   @Column(name = "UPDATE_USER_NAME")
-  private String updateUserName;
+  private String updateUser;
   //below are added for further data pull
 
   @Column(name = "STUD_TRUE_NO")

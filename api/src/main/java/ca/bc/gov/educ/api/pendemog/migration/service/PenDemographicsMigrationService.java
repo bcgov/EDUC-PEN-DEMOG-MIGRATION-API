@@ -1,6 +1,7 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
+import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -14,12 +15,15 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.Closeable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -133,12 +137,13 @@ public class PenDemographicsMigrationService implements Closeable {
         for (var studentHistory : studentHistoryEntities) {
           for (var penAuditEntity : penAuditEntities) {
             if (StringUtils.equals(penAuditEntity.getPen(), studentHistory.getPen())
-                && penAuditEntity.getDob().isEqual(studentHistory.getDob())
-                && penAuditEntity.getActivityDate().isEqual(studentHistory.getCreateDate())
-                && StringUtils.equals(penAuditEntity.getCreateUser(),studentHistory.getCreateUser())) {
+                && getLocalDateFromString(penAuditEntity.getDob()).isEqual(studentHistory.getDob())
+                && getLocalDateTimeFromString(penAuditEntity.getActivityDate()).isEqual(studentHistory.getCreateDate())
+                && StringUtils.equals(penAuditEntity.getCreateUser(), studentHistory.getCreateUser())
+                && StringUtils.equals(getHistoryActivityCode(penAuditEntity.getAuditCode()), studentHistory.getCreateUser())) {
               penAuditEntities.remove(penAuditEntity);
               studentHistoryEntities.remove(studentHistory);
-            }else {
+            } else {
               filteredAuditEntities.add(penAuditEntity);
             }
           }
@@ -158,6 +163,16 @@ public class PenDemographicsMigrationService implements Closeable {
     }
 
     return true;
+  }
+
+  private LocalDateTime getLocalDateTimeFromString(String dateTime) {
+    var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    return LocalDateTime.parse(dateTime, pattern);
+  }
+
+  private LocalDate getLocalDateFromString(String date) {
+    var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
+    return LocalDate.parse(date, pattern);
   }
 
 
@@ -367,5 +382,12 @@ public class PenDemographicsMigrationService implements Closeable {
       this.executorService.shutdown();
     }
 
+  }
+
+  private String getHistoryActivityCode(String auditCode) {
+    if (auditCode != null) {
+      return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.USER_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
+    }
+    return HistoryActivityCode.USER_NEW.getCode();
   }
 }

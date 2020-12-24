@@ -23,7 +23,7 @@ public class PenAuditEntity implements Serializable {
 
   @Id
   @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
-  LocalDateTime activityDate;
+  String activityDate;
 
   @Id
   @Column(name = "AUDIT_CODE", insertable = false, updatable = false)
@@ -43,7 +43,7 @@ public class PenAuditEntity implements Serializable {
 
   @Id
   @Column(name = "STUD_BIRTH", insertable = false, updatable = false)
-  LocalDate dob;
+  String dob;
 
   @Id
   @Column(name = "STUD_DEMOG_CODE", insertable = false, updatable = false)
@@ -101,23 +101,17 @@ public class PenAuditEntity implements Serializable {
   @Column(name = "USER_NAME", insertable = false, updatable = false)
   String createUser;
 
-  @Id
-  @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
-  LocalDateTime createDate;
 
   @Id
   @Column(name = "USER_NAME", insertable = false, updatable = false)
   String updateUser;
 
-  @Id
-  @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
-  LocalDateTime updateDate;
 
   public PenAuditID getId() {
     return new PenAuditID(
         this.activityDate, this.auditCode, this.localID, this.mincode, this.postalCode, this.dob, this.demogCode, this.statusCode, this.pen, this.legalFirstName, this.legalMiddleNames,
-        this.legalLastName, this.sexCode, this.genderCode, this.usualFirstName, this.usualMiddleNames, this.usualLastName, this.gradeCode, this.gradeYear, this.createUser, this.createDate,
-        this.updateUser, this.updateDate);
+        this.legalLastName, this.sexCode, this.genderCode, this.usualFirstName, this.usualMiddleNames, this.usualLastName, this.gradeCode, this.gradeYear, this.createUser,
+        this.updateUser);
   }
 
   public void setId(PenAuditID id) {
@@ -141,9 +135,7 @@ public class PenAuditEntity implements Serializable {
     this.gradeCode = id.getGradeCode();
     this.gradeYear = id.getGradeYear();
     this.createUser = id.getCreateUser();
-    this.createDate = id.getCreateDate();
     this.updateUser = id.getUpdateUser();
-    this.updateDate = id.getUpdateDate();
   }
 
   @AllArgsConstructor
@@ -151,12 +143,12 @@ public class PenAuditEntity implements Serializable {
   @Builder
   public static class PenAuditID implements Serializable {
 
-    LocalDateTime activityDate;
+    String activityDate;
     String auditCode;
     String localID;
     String mincode;
     String postalCode;
-    LocalDate dob;
+    String dob;
     String demogCode;
     String statusCode;
     String pen;
@@ -171,8 +163,6 @@ public class PenAuditEntity implements Serializable {
     String gradeCode;
     String gradeYear;
     String createUser;
-    LocalDateTime createDate;
     String updateUser;
-    LocalDateTime updateDate;
   }
 }

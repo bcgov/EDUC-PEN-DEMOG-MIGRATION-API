@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(uses = StringMapper.class)
+@Mapper(uses = {StringMapper.class,LocalDateTimeMapper.class})
 public interface PenDemogStudentMapper {
   PenDemogStudentMapper mapper = Mappers.getMapper(PenDemogStudentMapper.class);
 
@@ -28,7 +28,5 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "email", ignore = true)
   @Mapping(target = "dob", ignore = true)
   @Mapping(target = "deceasedDate", ignore = true)
-  @Mapping(target = "createUser", source = "createUserName")
-  @Mapping(target = "updateUser", source = "updateUserName")
   StudentEntity toStudent(PenDemographicsEntity penDemographicsEntity);
 }
