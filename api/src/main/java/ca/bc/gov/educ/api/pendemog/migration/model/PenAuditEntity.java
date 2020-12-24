@@ -141,6 +141,7 @@ public class PenAuditEntity implements Serializable {
   @AllArgsConstructor
   @Data
   @Builder
+  @NoArgsConstructor
   public static class PenAuditID implements Serializable {
 
     String activityDate;
