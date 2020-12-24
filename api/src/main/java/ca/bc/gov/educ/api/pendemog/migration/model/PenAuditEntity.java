@@ -22,95 +22,95 @@ import java.time.LocalDateTime;
 public class PenAuditEntity implements Serializable {
 
   @Id
-  @Column(name = "ACTIVITY_DATE")
+  @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
   LocalDateTime activityDate;
 
   @Id
-  @Column(name = "AUDIT_CODE")
+  @Column(name = "AUDIT_CODE", insertable = false, updatable = false)
   String auditCode;
 
   @Id
-  @Column(name = "PEN_LOCAL_ID")
+  @Column(name = "PEN_LOCAL_ID", insertable = false, updatable = false)
   String localID;
 
   @Id
-  @Column(name = "PEN_MINCODE")
+  @Column(name = "PEN_MINCODE", insertable = false, updatable = false)
   String mincode;
 
   @Id
-  @Column(name = "POSTAL")
+  @Column(name = "POSTAL", insertable = false, updatable = false)
   String postalCode;
 
   @Id
-  @Column(name = "STUD_BIRTH")
+  @Column(name = "STUD_BIRTH", insertable = false, updatable = false)
   LocalDate dob;
 
   @Id
-  @Column(name = "STUD_DEMOG_CODE")
+  @Column(name = "STUD_DEMOG_CODE", insertable = false, updatable = false)
   String demogCode;
 
   @Id
-  @Column(name = "STUD_STATUS")
+  @Column(name = "STUD_STATUS", insertable = false, updatable = false)
   String statusCode;
 
   @Id
-  @Column(name = "STUD_NO")
+  @Column(name = "STUD_NO", insertable = false, updatable = false)
   String pen;
 
   @Id
-  @Column(name = "STUD_GIVEN")
+  @Column(name = "STUD_GIVEN", insertable = false, updatable = false)
   String legalFirstName;
 
   @Id
-  @Column(name = "STUD_MIDDLE")
+  @Column(name = "STUD_MIDDLE", insertable = false, updatable = false)
   String legalMiddleNames;
 
   @Id
-  @Column(name = "STUD_SURNAME")
+  @Column(name = "STUD_SURNAME", insertable = false, updatable = false)
   String legalLastName;
 
   @Id
-  @Column(name = "STUD_SEX")
+  @Column(name = "STUD_SEX", insertable = false, updatable = false)
   String sexCode;
 
   @Id
-  @Column(name = "STUD_SEX")
+  @Column(name = "STUD_SEX", insertable = false, updatable = false)
   String genderCode;
 
   @Id
-  @Column(name = "USUAL_GIVEN")
+  @Column(name = "USUAL_GIVEN", insertable = false, updatable = false)
   String usualFirstName;
 
   @Id
-  @Column(name = "USUAL_MIDDLE")
+  @Column(name = "USUAL_MIDDLE", insertable = false, updatable = false)
   String usualMiddleNames;
 
   @Id
-  @Column(name = "USUAL_SURNAME")
+  @Column(name = "USUAL_SURNAME", insertable = false, updatable = false)
   String usualLastName;
 
   @Id
-  @Column(name = "STUD_GRADE")
+  @Column(name = "STUD_GRADE", insertable = false, updatable = false)
   String gradeCode;
 
   @Id
-  @Column(name = "STUD_GRADE_YEAR")
+  @Column(name = "STUD_GRADE_YEAR", insertable = false, updatable = false)
   String gradeYear;
 
   @Id
-  @Column(name = "USER_NAME", updatable = false)
+  @Column(name = "USER_NAME", insertable = false, updatable = false)
   String createUser;
 
   @Id
-  @Column(name = "ACTIVITY_DATE")
+  @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
   LocalDateTime createDate;
 
   @Id
-  @Column(name = "USER_NAME")
+  @Column(name = "USER_NAME", insertable = false, updatable = false)
   String updateUser;
 
   @Id
-  @Column(name = "ACTIVITY_DATE")
+  @Column(name = "ACTIVITY_DATE", insertable = false, updatable = false)
   LocalDateTime updateDate;
 
   public PenAuditID getId() {
