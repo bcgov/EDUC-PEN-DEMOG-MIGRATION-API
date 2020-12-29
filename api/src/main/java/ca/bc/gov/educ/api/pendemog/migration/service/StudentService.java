@@ -102,7 +102,7 @@ public class StudentService {
     List<StudentHistoryEntity> studentHistoryEntities = new ArrayList<>();
     var index = 1;
     for (var penAuditEntity : penAuditEntities) {
-      if (penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
+      if (penAuditEntity != null && penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
         log.debug("Total Records :: {} , processing pen :: {} at index {}, for penLike {}", currentLotSize, penAuditEntity.getPen(), index, penLike);
         StudentEntity studentEntity = studentPersistenceService.getStudentByPen(penAuditEntity.getPen().trim());
         if (studentEntity != null && studentEntity.getStudentID() != null) {
@@ -121,7 +121,7 @@ public class StudentService {
         }
         index++;
       } else {
-        log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for penLike {}", index, penLike);
+        log.error("ENTITY is Either Null or NO PEN AND STUD BIRTH skipping this record at index {}, for penLike {}", index, penLike);
       }
     }
 
