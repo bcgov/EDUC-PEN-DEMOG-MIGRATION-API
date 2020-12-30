@@ -114,7 +114,7 @@ public class PenDemographicsMigrationService implements Closeable {
   public void processDemogAuditDataMigration() {
     Query countQuery = entityManager.createNativeQuery("SELECT COUNT(1) FROM API_STUDENT.STUDENT");
     List countQueryResultList = countQuery.getResultList();
-    int chunkSize = 1000;
+    int chunkSize = 10000;
     BigDecimal totalStudentRecords = null;
     if (countQueryResultList != null && !countQueryResultList.isEmpty()) {
       totalStudentRecords = (BigDecimal) countQueryResultList.get(0);
@@ -169,7 +169,7 @@ public class PenDemographicsMigrationService implements Closeable {
       Long lowBits = byteBuffer.getLong();
 
       var guid = new UUID(highBits, lowBits);
-      log.info("pen number and student id is :: {}, {}", penStud[0], guid);
+      log.debug("pen number and student id is :: {}, {}", penStud[0], guid);
       historyEntitiesToPersist.addAll(processDemogAudit(String.valueOf(penStud[0]), guid));
     }
     if (!historyEntitiesToPersist.isEmpty()) {
