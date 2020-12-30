@@ -14,7 +14,5 @@ import java.io.Serializable;
 public class PenAuditPK implements Serializable {
   String activityDate;
   String auditCode;
-  String dob;
-  String statusCode;
   String pen;
 }

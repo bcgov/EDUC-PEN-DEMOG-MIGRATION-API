@@ -53,5 +53,6 @@ public class StudentPersistenceService {
     } else {
       studentHistoryRepository.saveAll(studentHistoryEntities);
     }
+    log.info("persisted {} history entities", studentHistoryEntities.size());
   }
 }

@@ -2,14 +2,12 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
-import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenAuditStudentHistoryMapper;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenAuditEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentHistoryEntity;
-import ca.bc.gov.educ.api.pendemog.migration.repository.StudentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +21,8 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
@@ -96,46 +94,33 @@ public class StudentService {
     return true;
   }
 
-  @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
-  public boolean processDemographicsAuditEntities(List<PenAuditEntity> penAuditEntities, String penLike) {
+
+  public List<StudentHistoryEntity> processDemographicsAuditEntities(List<PenAuditEntity> penAuditEntities, String pen, UUID studentID) {
     var currentLotSize = penAuditEntities.size();
     List<StudentHistoryEntity> studentHistoryEntities = new ArrayList<>();
-    var index = 1;
+    final AtomicInteger recordCount = new AtomicInteger(0);
     for (var penAuditEntity : penAuditEntities) {
-      if (penAuditEntity != null && penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
-        log.debug("Total Records :: {} , processing pen :: {} at index {}, for penLike {}", currentLotSize, penAuditEntity.getPen(), index, penLike);
-        StudentEntity studentEntity = studentPersistenceService.getStudentByPen(penAuditEntity.getPen().trim());
-        if (studentEntity != null && studentEntity.getStudentID() != null) {
-          var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
-          studentHistory.setStudentID(studentEntity.getStudentID());
-          if (studentHistory.getGradeCode() != null && !gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
-            log.debug("updated grade code to null from :: {} at index {}, for penLike {}", studentHistory.getGradeCode(), index, penLike);
-            studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
-          }
-          if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
-            studentHistory.setLegalLastName("NULL");
-          }
-          studentHistoryEntities.add(studentHistory);
-        } else {
-          log.error("No Student record found for pen :: {}", penAuditEntity.getPen());
-        }
-        index++;
-      } else {
-        log.error("ENTITY is Either Null or NO PEN AND STUD BIRTH skipping this record at index {}, for penLike {}", index, penLike);
-      }
-    }
+      recordCount.incrementAndGet();
 
-    if (!studentHistoryEntities.isEmpty()) {
-      try {
-        studentPersistenceService.saveStudentHistory(studentHistoryEntities);
-        log.debug("processing complete for penLike :: {}, persisted {} records into DB", penLike, studentHistoryEntities.size());
-      } catch (final Exception ex) {
-        log.error("Exception while persisting records for penLike :: {}, records into DB , exception is :: {}", penLike, ex);
-        throw ex;
+      if (penAuditEntity != null && penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
+
+        log.debug("Total Records :: {} , processing audit entity :: {} at index {}, for pen {}", currentLotSize, penAuditEntity, recordCount.get(), pen);
+        var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
+        studentHistory.setStudentID(studentID);
+        if (studentHistory.getGradeCode() != null && !gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
+          log.debug("updated grade code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(), recordCount.get(), pen);
+          studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
+        }
+        if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
+          studentHistory.setLegalLastName("NULL");
+        }
+        studentHistoryEntities.add(studentHistory);
+      } else {
+        log.info("pen audit entity at {} is :: {}", recordCount.get(), penAuditEntity != null ? penAuditEntity.toString() : "");
+        log.error("ENTITY is Either Null or NO PEN AND STUD BIRTH skipping this record at index {}, for pen {}", recordCount.get(), pen);
       }
     }
-    log.info("total number of history records processed :: {}", CounterUtil.historyProcessCounter.incrementAndGet());
-    return true;
+    return studentHistoryEntities;
   }
 
 
@@ -145,5 +130,9 @@ public class StudentService {
     var day = dob.substring(6, 8);
 
     return year.concat("-").concat(month).concat("-").concat(day);
+  }
+
+  public void saveHistoryEntities(List<StudentHistoryEntity> historyEntitiesToPersist) {
+    studentPersistenceService.saveStudentHistory(historyEntitiesToPersist);
   }
 }

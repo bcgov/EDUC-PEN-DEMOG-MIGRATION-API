@@ -36,14 +36,12 @@ public class PenAuditEntity implements Serializable {
   @Column(name = "POSTAL", insertable = false, updatable = false)
   String postalCode;
 
-  @Id
   @Column(name = "STUD_BIRTH", insertable = false, updatable = false)
   String dob;
 
   @Column(name = "STUD_DEMOG_CODE", insertable = false, updatable = false)
   String demogCode;
 
-  @Id
   @Column(name = "STUD_STATUS", insertable = false, updatable = false)
   String statusCode;
 
@@ -91,14 +89,12 @@ public class PenAuditEntity implements Serializable {
 
   public PenAuditPK getId() {
     return new PenAuditPK(
-        this.activityDate, this.auditCode, this.dob, this.statusCode, this.pen);
+        this.activityDate, this.auditCode, this.pen);
   }
 
   public void setId(PenAuditPK id) {
     this.activityDate = id.getActivityDate();
     this.auditCode = id.getAuditCode();
-    this.dob = id.getDob();
-    this.statusCode = id.getStatusCode();
     this.pen = id.getPen();
   }
 

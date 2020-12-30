@@ -5,6 +5,7 @@ import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
+import ca.bc.gov.educ.api.pendemog.migration.struct.RowFilter;
 import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,7 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import java.io.Closeable;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,7 +28,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +37,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
+  private final EntityManager entityManager;
   private final ExecutorService executorService;
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
@@ -80,7 +85,8 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+  public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+    this.entityManager = entityManager;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
     this.penAuditRepository = penAuditRepository;
     this.studentRepository = studentRepository;
@@ -106,11 +112,34 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   public void processDemogAuditDataMigration() {
+    Query countQuery = entityManager.createNativeQuery("SELECT COUNT(1) FROM API_STUDENT.STUDENT");
+    List countQueryResultList = countQuery.getResultList();
+    int chunkSize = 10;
+    BigDecimal totalStudentRecords = null;
+    if (countQueryResultList != null && !countQueryResultList.isEmpty()) {
+      totalStudentRecords = (BigDecimal) countQueryResultList.get(0);
+    }
+    assert totalStudentRecords != null;
+    int totalIteration = totalStudentRecords.intValue() / chunkSize;
+    log.info("Total number of iteration is  :: {} ", totalIteration);
+    List<RowFilter> chunkList = new ArrayList<>();
+    int high;
+    int low = 0;
+    for (int i = 0; i <= totalIteration; i++) {
+      high = low + chunkSize;
+      chunkList.add(RowFilter.builder().low(low).high(high).build());
+      low = high;
+    }
     List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
-    for (String studNo : studNoSet) {
-      final Callable<Boolean> callable = () -> processDemogAudit(studNo);
+    for (var chunk : chunkList) {
+      final Callable<Boolean> callable = () -> processDemogAuditChunk(chunk);
       futures.add(executorService.submit(callable));
     }
+    checkFutureResults(futures);
+    log.info("All pen demog audit records have been processed.");
+  }
+
+  private void checkFutureResults(List<Future<Boolean>> futures) {
     if (!futures.isEmpty()) {
       log.info("waiting for future results. futures size is :: {}", futures.size());
       for (var future : futures) {
@@ -122,50 +151,73 @@ public class PenDemographicsMigrationService implements Closeable {
         }
       }
     }
-    log.info("All pen demog audit records have been processed.");
   }
 
-  private Boolean processDemogAudit(String penLike) {
-    log.debug("Now Processing penLike starting with :: {}", penLike);
-    List<PenAuditEntity> filteredAuditEntities = new CopyOnWriteArrayList<>();
-    var penAuditEntities = new CopyOnWriteArrayList<>(getPenAuditRepository().findByPenLike(penLike + "%"));
-    if (!penAuditEntities.isEmpty()) {
-      log.debug("Found {} records from penLike demog audit for Stud No :: {}", penAuditEntities.size(), penLike);
-      List<StudentHistoryEntity> studentHistoryEntities = new CopyOnWriteArrayList<>(getStudentHistoryRepository().findAllByPenLike(penLike + "%"));
-      log.debug("Found {} records from student history for penLike :: {}", studentHistoryEntities.size(), penLike);
-      if (!studentHistoryEntities.isEmpty()) {
-        for (var studentHistory : studentHistoryEntities) {
-          for (var penAuditEntity : penAuditEntities) {
-            if (StringUtils.equals(penAuditEntity.getPen(), studentHistory.getPen())
-                && getLocalDateFromString(penAuditEntity.getDob()).isEqual(studentHistory.getDob())
-                && getLocalDateTimeFromString(penAuditEntity.getActivityDate()).isEqual(studentHistory.getCreateDate())
-                && StringUtils.equals(penAuditEntity.getCreateUser(), studentHistory.getCreateUser())
-                && StringUtils.equals(getHistoryActivityCode(penAuditEntity.getAuditCode()), studentHistory.getCreateUser())) {
-              penAuditEntities.remove(penAuditEntity);
-              studentHistoryEntities.remove(studentHistory);
-            } else {
-              filteredAuditEntities.add(penAuditEntity);
-            }
-          }
-        }
-      } else {
-        filteredAuditEntities = penAuditEntities;
-      }
-      if (!filteredAuditEntities.isEmpty()) {
-        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", filteredAuditEntities.size(), penLike);
-        return studentService.processDemographicsAuditEntities(filteredAuditEntities, penLike);
-      } else {
-        log.info("Nothing to process for :: {} marking complete. total number of history records processed :: {}", penLike, CounterUtil.historyProcessCounter.incrementAndGet());
-      }
-    } else {
-      log.debug("No Records found for Stud No like :: {} in PEN_AUDIT so skipped.", penLike);
-      log.info("total number of history records processed :: {}", CounterUtil.historyProcessCounter.incrementAndGet());
-    }
+  private Boolean processDemogAuditChunk(RowFilter chunk) {
+    Query penStudIdQuery = entityManager.createNativeQuery("select *\n" +
+        "from (select row_.*, rownum rownum_\n" +
+        "      from (select PEN, STUDENT_ID\n" +
+        "            from API_STUDENT.STUDENT\n" +
+        "            order by PEN) row_\n" +
+        "      where rownum <=" + chunk.getHigh() + " )\n" +
+        "where rownum_ > " + chunk.getLow());
+    List<Object[]> penStudIdList = penStudIdQuery.getResultList();
+    List<StudentHistoryEntity> historyEntitiesToPersist = new CopyOnWriteArrayList<>();
+    for (var penStud : penStudIdList) {
+      ByteBuffer byteBuffer = ByteBuffer.wrap((byte[]) penStud[1]);
+      Long highBits = byteBuffer.getLong();
+      Long lowBits = byteBuffer.getLong();
 
+      var guid = new UUID(highBits, lowBits);
+      log.info("pen number and student id is :: {}, {}", penStud[0], guid);
+      historyEntitiesToPersist.addAll(processDemogAudit(String.valueOf(penStud[0]), guid));
+    }
+    if (!historyEntitiesToPersist.isEmpty()) {
+      studentService.saveHistoryEntities(historyEntitiesToPersist);
+    }
     return true;
   }
 
+  private List<StudentHistoryEntity> processDemogAudit(String pen, UUID studentID) {
+    log.debug("Now Processing pen :: {}", pen);
+
+    var penAuditEntities = new CopyOnWriteArrayList<>(getPenAuditRepository().findByPen(pen));
+    if (!penAuditEntities.isEmpty()) {
+      log.debug("Found {} records from pen demog audit for Stud No :: {}", penAuditEntities.size(), pen);
+      List<StudentHistoryEntity> studentHistoryEntities = new CopyOnWriteArrayList<>(getStudentHistoryRepository().findAllByStudentID(studentID));
+      log.debug("Found {} records from student history for studentID :: {}", studentHistoryEntities.size(), studentID);
+      log.debug("Pen Audit entities before filter :: {}", penAuditEntities.size());
+      if (!studentHistoryEntities.isEmpty()) {
+        for (var penAuditEntity : penAuditEntities) {
+          for (var studentHistory : studentHistoryEntities) {
+            if (penAuditEntity != null && studentHistory != null
+                && StringUtils.equals(StringUtils.trim(penAuditEntity.getPen()), studentHistory.getPen())
+                && StringUtils.isNotBlank(penAuditEntity.getActivityDate()) && studentHistory.getCreateDate().isEqual(getLocalDateTimeFromString(penAuditEntity.getActivityDate()))
+                && StringUtils.equals(penAuditEntity.getCreateUser(), studentHistory.getCreateUser())
+                && StringUtils.equals(getHistoryActivityCode(penAuditEntity.getAuditCode()), studentHistory.getHistoryActivityCode())) {
+              penAuditEntities.remove(penAuditEntity);
+            }
+          }
+        }
+      }
+      log.debug("Pen Audit entities after filter :: {}", penAuditEntities.size());
+      List<PenAuditEntity> filteredAuditEntities = new CopyOnWriteArrayList<>(penAuditEntities);
+      if (!filteredAuditEntities.isEmpty()) {
+        log.debug("Found {} records for pen {} which are not processed and now processing.", filteredAuditEntities.size(), pen);
+        return studentService.processDemographicsAuditEntities(filteredAuditEntities, pen, studentID);
+      }
+    } else {
+      log.debug("No Records found for PEN :: {} in PEN_AUDIT so skipped.", pen);
+    }
+    return Collections.emptyList();
+  }
+
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {
+    if (dateTime == null) {
+      return null;
+    } else {
+      dateTime = StringUtils.substring(dateTime, 0, 19);
+    }
     var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     return LocalDateTime.parse(dateTime, pattern);
   }
@@ -182,17 +234,7 @@ public class PenDemographicsMigrationService implements Closeable {
       final Callable<Boolean> callable = () -> processDemog(studNo);
       futures.add(executorService.submit(callable));
     }
-    if (!futures.isEmpty()) {
-      log.info("waiting for future results. futures size is :: {}", futures.size());
-      for (var future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException | ExecutionException e) {
-          Thread.currentThread().interrupt();
-          log.warn("Error waiting for result", e);
-        }
-      }
-    }
+    checkFutureResults(futures);
     log.info("All pen demog records have been processed, moving to next phase");
   }
 
