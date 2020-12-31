@@ -102,7 +102,7 @@ public class StudentService {
     for (var penAuditEntity : penAuditEntities) {
       recordCount.incrementAndGet();
 
-      if (penAuditEntity != null && penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
+      if (penAuditEntity != null && penAuditEntity.getPen() != null) {
         log.debug("Total Records :: {} , processing audit entity :: {} at index {}, for pen {}", currentLotSize, penAuditEntity, recordCount.get(), penAuditEntity.getPen());
         try {
           var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);

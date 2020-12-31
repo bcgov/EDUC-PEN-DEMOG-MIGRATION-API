@@ -28,7 +28,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     entity.setCreateDate(getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
     entity.setUpdateDate(getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
     entity.setHistoryActivityCode(getHistoryActivityCode(penAuditEntity.getAuditCode()));
-    entity.setDob(getLocalDateFromString(penAuditEntity.getDob()));
+    entity.setDob(getDobFromString(penAuditEntity.getDob()));
     entity.setPostalCode(formatPostalCode(entity.getPostalCode()));
     return entity;
   }
@@ -48,8 +48,11 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {
     if (dateTime == null) {
       return null;
-    } else if (StringUtils.length(dateTime) > 19) {
-      dateTime = dateTime.substring(0, 19);
+    } else {
+      dateTime = dateTime.trim();
+      if (StringUtils.length(dateTime) > 19) {
+        dateTime = dateTime.substring(0, 19);
+      }
     }
     var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     try {
@@ -60,17 +63,21 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     return LocalDateTime.now();
   }
 
-  private LocalDate getLocalDateFromString(String date) {
-    if (date == null) {
-      return null;
-    } else if (StringUtils.length(date) > 8) {
-      date = date.substring(0, 8);
+  private LocalDate getDobFromString(String dob) {
+    if (dob == null) {
+      log.error("system will use current date as dob was null");
+      return LocalDate.now();
+    } else {
+      dob = dob.trim();
+      if (StringUtils.length(dob) > 8) {
+        dob = dob.substring(0, 8);
+      }
     }
     var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
     try {
-      return LocalDate.parse(date, pattern);
+      return LocalDate.parse(dob, pattern);
     } catch (final DateTimeParseException exception) {
-      log.error("system will use current date time as parsing error of date :: {}, error :: {}", date, exception);
+      log.error("system will use current date as parsing error of dob :: {}, error :: {}", dob, exception);
     }
     return LocalDate.now();
   }

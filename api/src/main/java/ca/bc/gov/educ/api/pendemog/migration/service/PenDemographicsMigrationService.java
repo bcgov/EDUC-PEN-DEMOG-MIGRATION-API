@@ -215,8 +215,8 @@ public class PenDemographicsMigrationService implements Closeable {
             if (penAuditEntity != null && studentHistory != null
                 && StringUtils.equals(StringUtils.trim(penAuditEntity.getPen()), studentHistory.getPen())
                 && StringUtils.isNotBlank(penAuditEntity.getActivityDate()) && studentHistory.getCreateDate().isEqual(getLocalDateTimeFromString(penAuditEntity.getActivityDate()))
-                && StringUtils.equals(penAuditEntity.getCreateUser(), studentHistory.getCreateUser())
-                && StringUtils.equals(getHistoryActivityCode(penAuditEntity.getAuditCode()), studentHistory.getHistoryActivityCode())) {
+                && StringUtils.equals(StringUtils.trim(penAuditEntity.getCreateUser()), studentHistory.getCreateUser())
+                && StringUtils.equals(getHistoryActivityCode(StringUtils.trim(penAuditEntity.getAuditCode())), studentHistory.getHistoryActivityCode())) {
               penAuditEntities.remove(penAuditEntity);
             }
           }
@@ -237,6 +237,7 @@ public class PenDemographicsMigrationService implements Closeable {
     if (dateTime == null) {
       return null;
     } else {
+      dateTime = dateTime.trim();
       dateTime = StringUtils.substring(dateTime, 0, 19);
     }
     var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
