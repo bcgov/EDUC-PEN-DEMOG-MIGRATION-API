@@ -95,7 +95,7 @@ public class StudentService {
   }
 
 
-  public List<StudentHistoryEntity> processDemographicsAuditEntities(List<PenAuditEntity> penAuditEntities, String pen, UUID studentID) {
+  public List<StudentHistoryEntity> processDemographicsAuditEntities(List<PenAuditEntity> penAuditEntities, Map<String, UUID> penStudIDMap) {
     var currentLotSize = penAuditEntities.size();
     List<StudentHistoryEntity> studentHistoryEntities = new ArrayList<>();
     final AtomicInteger recordCount = new AtomicInteger(0);
@@ -103,12 +103,12 @@ public class StudentService {
       recordCount.incrementAndGet();
 
       if (penAuditEntity != null && penAuditEntity.getPen() != null && penAuditEntity.getDob() != null) {
-        log.debug("Total Records :: {} , processing audit entity :: {} at index {}, for pen {}", currentLotSize, penAuditEntity, recordCount.get(), pen);
+        log.debug("Total Records :: {} , processing audit entity :: {} at index {}, for pen {}", currentLotSize, penAuditEntity, recordCount.get(), penAuditEntity.getPen());
         try {
           var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
-          studentHistory.setStudentID(studentID);
+          studentHistory.setStudentID(penStudIDMap.get(studentHistory.getPen()));
           if (studentHistory.getGradeCode() != null && !gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
-            log.debug("updated grade code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(), recordCount.get(), pen);
+            log.debug("updated grade code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(), recordCount.get(), penAuditEntity.getPen());
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
           }
           if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
@@ -120,7 +120,6 @@ public class StudentService {
         }
       } else {
         log.info("pen audit entity at {} is :: {}", recordCount.get(), penAuditEntity != null ? penAuditEntity.toString() : "");
-        log.error("ENTITY is Either Null or NO PEN AND STUD BIRTH skipping this record at index {}, for pen {}", recordCount.get(), pen);
       }
     }
     return studentHistoryEntities;

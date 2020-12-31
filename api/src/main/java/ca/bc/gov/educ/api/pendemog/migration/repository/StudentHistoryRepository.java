@@ -12,4 +12,6 @@ public interface StudentHistoryRepository extends JpaRepository<StudentHistoryEn
   List<StudentHistoryEntity> findAllByPenLike(String pen);
 
   List<StudentHistoryEntity> findAllByStudentID(UUID studentID);
+
+  List<StudentHistoryEntity> findAllByStudentIDIn(List<UUID> studentIDList);
 }

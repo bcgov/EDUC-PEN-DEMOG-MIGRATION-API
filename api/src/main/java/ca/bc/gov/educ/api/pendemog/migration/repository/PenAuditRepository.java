@@ -11,4 +11,6 @@ public interface PenAuditRepository extends JpaRepository<PenAuditEntity, String
   List<PenAuditEntity> findByPenLike(String pen);
 
   List<PenAuditEntity> findByPen(String pen);
+
+  List<PenAuditEntity> findByPenIn(List<String> pen);
 }

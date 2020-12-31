@@ -164,6 +164,7 @@ public class PenDemographicsMigrationService implements Closeable {
         "where rownum_ > " + chunk.getLow());
     List<Object[]> penStudIdList = penStudIdQuery.getResultList();
     List<StudentHistoryEntity> historyEntitiesToPersist = new CopyOnWriteArrayList<>();
+    List<StudentEntity> studentEntities = new CopyOnWriteArrayList<>();
     for (var penStud : penStudIdList) {
       ByteBuffer byteBuffer = ByteBuffer.wrap((byte[]) penStud[1]);
       Long highBits = byteBuffer.getLong();
@@ -171,7 +172,15 @@ public class PenDemographicsMigrationService implements Closeable {
 
       var guid = new UUID(highBits, lowBits);
       log.debug("pen number and student id is :: {}, {}", penStud[0], guid);
-      historyEntitiesToPersist.addAll(processDemogAudit(String.valueOf(penStud[0]), guid));
+      StudentEntity entity = new StudentEntity();
+      entity.setPen(String.valueOf(penStud[0]));
+      entity.setStudentID(guid);
+      studentEntities.add(entity);
+    }
+
+    var results = Lists.partition(studentEntities, 200);
+    for (var result : results) {
+      historyEntitiesToPersist.addAll(processStudentEntityList(result));
     }
     if (!historyEntitiesToPersist.isEmpty()) {
       try {
@@ -180,18 +189,22 @@ public class PenDemographicsMigrationService implements Closeable {
         log.error("exception while saving history entities", ex);
       }
     }
-    log.info("processing complete for chunk , low :: {}, high :: {}, found {} many pens", chunk.getLow(), chunk.getHigh(), penStudIdList.size());
+    log.info("processing complete for chunk , low :: {}, high :: {}, processed {} many pens", chunk.getLow(), chunk.getHigh(), penStudIdList.size());
     return true;
   }
 
-  private List<StudentHistoryEntity> processDemogAudit(String pen, UUID studentID) {
-    log.debug("Now Processing pen :: {}", pen);
-
-    var penAuditEntities = new CopyOnWriteArrayList<>(getPenAuditRepository().findByPen(pen));
+  private List<StudentHistoryEntity> processStudentEntityList(List<StudentEntity> studentEntities) {
+    List<String> penList = new CopyOnWriteArrayList<>();
+    List<UUID> studentIdList = new CopyOnWriteArrayList<>();
+    Map<String, UUID> penStudIDMap = new ConcurrentHashMap<>();
+    for (var item : studentEntities) {
+      penStudIDMap.put(item.getPen(), item.getStudentID());
+      penList.add(item.getPen());
+      studentIdList.add(item.getStudentID());
+    }
+    var penAuditEntities = new CopyOnWriteArrayList<>(getPenAuditRepository().findByPenIn(penList));
     if (!penAuditEntities.isEmpty()) {
-      log.debug("Found {} records from pen demog audit for Stud No :: {}", penAuditEntities.size(), pen);
-      List<StudentHistoryEntity> studentHistoryEntities = new CopyOnWriteArrayList<>(getStudentHistoryRepository().findAllByStudentID(studentID));
-      log.debug("Found {} records from student history for studentID :: {}", studentHistoryEntities.size(), studentID);
+      List<StudentHistoryEntity> studentHistoryEntities = new CopyOnWriteArrayList<>(getStudentHistoryRepository().findAllByStudentIDIn(studentIdList));
       log.debug("Pen Audit entities before filter :: {}", penAuditEntities.size());
       if (!studentHistoryEntities.isEmpty()) {
         for (var penAuditEntity : penAuditEntities) {
@@ -209,14 +222,13 @@ public class PenDemographicsMigrationService implements Closeable {
       log.debug("Pen Audit entities after filter :: {}", penAuditEntities.size());
       List<PenAuditEntity> filteredAuditEntities = new CopyOnWriteArrayList<>(penAuditEntities);
       if (!filteredAuditEntities.isEmpty()) {
-        log.debug("Found {} records for pen {} which are not processed and now processing.", filteredAuditEntities.size(), pen);
-        return studentService.processDemographicsAuditEntities(filteredAuditEntities, pen, studentID);
+        log.debug("Found {} records which are not processed and now processing.", filteredAuditEntities.size());
+        return studentService.processDemographicsAuditEntities(filteredAuditEntities, penStudIDMap);
       }
-    } else {
-      log.debug("No Records found for PEN :: {} in PEN_AUDIT so skipped.", pen);
     }
     return Collections.emptyList();
   }
+
 
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {
     if (dateTime == null) {
