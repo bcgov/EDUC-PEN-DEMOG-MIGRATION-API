@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
+
+  private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
   private final ExecutorService auditExecutor = Executors.newFixedThreadPool(40);
@@ -87,6 +89,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   @Autowired
   public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+    this.partitionSize = applicationProperties.getPartitionSize();
     this.entityManager = entityManager;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
     this.penAuditRepository = penAuditRepository;
@@ -178,7 +181,7 @@ public class PenDemographicsMigrationService implements Closeable {
       studentEntities.add(entity);
     }
 
-    var results = Lists.partition(studentEntities, 200);
+    var results = Lists.partition(studentEntities, this.partitionSize);
     for (var result : results) {
       historyEntitiesToPersist.addAll(processStudentEntityList(result));
     }

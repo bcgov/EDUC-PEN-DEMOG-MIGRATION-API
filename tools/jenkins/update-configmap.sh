@@ -19,7 +19,7 @@ DB_USER=$(oc -o json get configmaps "${APP_NAME}"-"${envValue}"-setup-config | s
 
 echo
 echo Creating config map "$APP_NAME"-config-map
-oc create -n "$OPENSHIFT_NAMESPACE"-"$envValue" configmap "$APP_NAME"-config-map --from-literal=TZ=$TZVALUE --from-literal=JDBC_URL="$DB_JDBC_CONNECT_STRING" --from-literal=ORACLE_USERNAME="$DB_USER" --from-literal=ORACLE_PASSWORD="$DB_PWD"  --from-literal=SPRING_WEB_LOG_LEVEL=INFO --from-literal=APP_LOG_LEVEL=INFO --from-literal=SPRING_BOOT_AUTOCONFIG_LOG_LEVEL=INFO --from-literal=SPRING_SHOW_REQUEST_DETAILS=false --from-literal=HIBERNATE_STATISTICS=false --from-literal=QUERY_THREADS=30 --from-literal=EXECUTOR_THREADS=20 --from-literal=DB_CONNECTION_MAX_POOL_SIZE=40 --from-literal=DB_CONNECTION_MIN_IDLE=40 --dry-run -o yaml | oc apply -f -
+oc create -n "$OPENSHIFT_NAMESPACE"-"$envValue" configmap "$APP_NAME"-config-map --from-literal=TZ=$TZVALUE --from-literal=JDBC_URL="$DB_JDBC_CONNECT_STRING" --from-literal=ORACLE_USERNAME="$DB_USER" --from-literal=ORACLE_PASSWORD="$DB_PWD"  --from-literal=SPRING_WEB_LOG_LEVEL=INFO --from-literal=APP_LOG_LEVEL=INFO --from-literal=SPRING_BOOT_AUTOCONFIG_LOG_LEVEL=INFO --from-literal=SPRING_SHOW_REQUEST_DETAILS=false --from-literal=HIBERNATE_STATISTICS=false --from-literal=QUERY_THREADS=30 --from-literal=EXECUTOR_THREADS=20 --from-literal=DB_CONNECTION_MAX_POOL_SIZE=40 --from-literal=DB_CONNECTION_MIN_IDLE=40 --from-literal=SIZE_PARTITION_ENTITIES_STUDENT_HISTORY=800 --dry-run -o yaml | oc apply -f -
 echo
 echo Setting environment variables for "$APP_NAME"-$SOAM_KC_REALM_ID application
 oc project "$OPENSHIFT_NAMESPACE"-"$envValue"

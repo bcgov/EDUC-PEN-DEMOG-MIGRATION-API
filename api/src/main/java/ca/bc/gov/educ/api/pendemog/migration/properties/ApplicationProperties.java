@@ -19,4 +19,6 @@ public class ApplicationProperties {
   private Integer queryThreads;
   @Value("${threads.executor}")
   private Integer executorThreads;
+  @Value("${size.partition.entities.student.history}")
+  private Integer partitionSize;
 }
