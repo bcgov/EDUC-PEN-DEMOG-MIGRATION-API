@@ -29,7 +29,20 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     entity.setUpdateDate(getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
     entity.setHistoryActivityCode(getHistoryActivityCode(penAuditEntity.getAuditCode()));
     entity.setDob(getLocalDateFromString(penAuditEntity.getDob()));
+    entity.setPostalCode(formatPostalCode(entity.getPostalCode()));
     return entity;
+  }
+
+  private String formatPostalCode(String postalCode) {
+    if (postalCode == null) {
+      return null;
+    } else {
+      postalCode = postalCode.replaceAll("\\s", "");
+    }
+    if (postalCode.length() > 6) {
+      postalCode = postalCode.substring(0, 6);
+    }
+    return postalCode;
   }
 
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {

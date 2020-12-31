@@ -173,7 +173,11 @@ public class PenDemographicsMigrationService implements Closeable {
       historyEntitiesToPersist.addAll(processDemogAudit(String.valueOf(penStud[0]), guid));
     }
     if (!historyEntitiesToPersist.isEmpty()) {
-      studentService.saveHistoryEntities(historyEntitiesToPersist);
+      try {
+        studentService.saveHistoryEntities(historyEntitiesToPersist);
+      } catch (final Exception ex) {
+        log.error("exception while saving history entities", ex);
+      }
     }
     return true;
   }
