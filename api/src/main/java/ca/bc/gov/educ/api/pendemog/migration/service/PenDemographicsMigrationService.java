@@ -39,6 +39,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private final EntityManager entityManager;
   private final ExecutorService executorService;
+  private final ExecutorService auditExecutor = Executors.newFixedThreadPool(200);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -114,7 +115,7 @@ public class PenDemographicsMigrationService implements Closeable {
   public void processDemogAuditDataMigration() {
     Query countQuery = entityManager.createNativeQuery("SELECT COUNT(1) FROM API_STUDENT.STUDENT");
     List countQueryResultList = countQuery.getResultList();
-    int chunkSize = 100000;
+    int chunkSize = 100;
     BigDecimal totalStudentRecords = null;
     if (countQueryResultList != null && !countQueryResultList.isEmpty()) {
       totalStudentRecords = (BigDecimal) countQueryResultList.get(0);
@@ -133,7 +134,7 @@ public class PenDemographicsMigrationService implements Closeable {
     List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (var chunk : chunkList) {
       final Callable<Boolean> callable = () -> processDemogAuditChunk(chunk);
-      futures.add(executorService.submit(callable));
+      futures.add(auditExecutor.submit(callable));
     }
     checkFutureResults(futures);
     log.info("All pen demog audit records have been processed.");
