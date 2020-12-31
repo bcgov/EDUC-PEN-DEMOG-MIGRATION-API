@@ -46,7 +46,7 @@ public class StudentPersistenceService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 10, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudentHistory(List<StudentHistoryEntity> studentHistoryEntities) {
-    if (studentHistoryEntities.size() > 1000) {
+    if (studentHistoryEntities.size() > 1500) {
       List<List<StudentHistoryEntity>> subSets = Lists.partition(studentHistoryEntities, 1000);
       log.info("created subset of {} student history entities", subSets.size());
       subSets.forEach(studentHistoryRepository::saveAll);
