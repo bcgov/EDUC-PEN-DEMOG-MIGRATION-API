@@ -114,7 +114,7 @@ public class PenDemographicsMigrationService implements Closeable {
   public void processDemogAuditDataMigration() {
     Query countQuery = entityManager.createNativeQuery("SELECT COUNT(1) FROM API_STUDENT.STUDENT");
     List countQueryResultList = countQuery.getResultList();
-    int chunkSize = 1000;
+    int chunkSize = 100000;
     BigDecimal totalStudentRecords = null;
     if (countQueryResultList != null && !countQueryResultList.isEmpty()) {
       totalStudentRecords = (BigDecimal) countQueryResultList.get(0);
@@ -179,6 +179,7 @@ public class PenDemographicsMigrationService implements Closeable {
         log.error("exception while saving history entities", ex);
       }
     }
+    log.info("processing complete for chunk , low :: {}, high :: {}, found {} many pens", chunk.getLow(), chunk.getHigh(), penStudIdList.size());
     return true;
   }
 
