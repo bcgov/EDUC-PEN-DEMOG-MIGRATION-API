@@ -262,22 +262,29 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private Boolean processDemog(String studNoLike) {
     log.debug("Now Processing studNo starting with :: {}", studNoLike);
-    List<PenDemographicsEntity> penDemographicsEntities = getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%");
+    List<PenDemographicsEntity> penDemographicsEntities = new CopyOnWriteArrayList<>(getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%"));
     if (!penDemographicsEntities.isEmpty()) {
       log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
-      List<StudentEntity> studentEntities = getStudentRepository().findByPenLike(studNoLike + "%");
+      List<StudentEntity> studentEntities = new CopyOnWriteArrayList<>(getStudentRepository().findByPenLike(studNoLike + "%"));
       log.debug("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
-      List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.parallelStream().filter(penDemographicsEntity ->
-          studentEntities.parallelStream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
-      if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
-        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
-        return studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
+      if (!studentEntities.isEmpty()) {
+        for (var penDemogEntity : penDemographicsEntities) {
+          for (var student : studentEntities) {
+            if (StringUtils.equals(StringUtils.trim(penDemogEntity.getStudNo()), StringUtils.trim(student.getPen()))) {
+              penDemographicsEntities.remove(penDemogEntity);
+              studentEntities.remove(student);
+            }
+          }
+        }
+      }
+      if (!penDemographicsEntities.isEmpty()) {
+        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntities.size(), studNoLike);
+        return studentService.processDemographicsEntities(penDemographicsEntities, studNoLike);
       } else {
-        log.debug("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
+        log.info("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
       }
     } else {
-      log.debug("No Records found for Stud No like :: {} in PEN_DEMOG so skipped.", studNoLike);
-      log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
+      log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped., total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
     }
 
     return true;
