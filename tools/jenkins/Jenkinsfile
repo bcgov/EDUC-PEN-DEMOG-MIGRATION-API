@@ -24,9 +24,9 @@ pipeline{
       MIN_REPLICAS = "1"
       MAX_REPLICAS = "1"
       MIN_CPU = "1000m"
-      MAX_CPU = "9000m"
+      MAX_CPU = "8000m"
       MIN_MEM = "8050Mi"
-      MAX_MEM = "16050Mi"
+      MAX_MEM = "12050Mi"
   }
   stages{
     stage('Initialize') {
