@@ -71,7 +71,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   @PostConstruct
   public void init() {
-    for (var i = 1000; i < 2000; i++) {
+    for (var i = 100; i < 200; i++) {
       studNoSet.add("" + i);
     }
     studNoSet.add("2");
@@ -80,7 +80,7 @@ public class PenDemographicsMigrationService implements Closeable {
     studNoSet.add("5");
     studNoSet.add("6");
     studNoSet.add("7");
-    for (var i = 8000; i < 10000; i++) {
+    for (var i = 800; i < 1000; i++) {
       studNoSet.add("" + i);
     }
 
@@ -267,8 +267,8 @@ public class PenDemographicsMigrationService implements Closeable {
       log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
       List<StudentEntity> studentEntities = getStudentRepository().findByPenLike(studNoLike + "%");
       log.debug("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
-      List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.stream().filter(penDemographicsEntity ->
-          studentEntities.stream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
+      List<PenDemographicsEntity> penDemographicsEntitiesToBeProcessed = penDemographicsEntities.parallelStream().filter(penDemographicsEntity ->
+          studentEntities.parallelStream().allMatch(studentEntity -> (!penDemographicsEntity.getStudNo().trim().equals(studentEntity.getPen())))).collect(Collectors.toList());
       if (!penDemographicsEntitiesToBeProcessed.isEmpty()) {
         log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntitiesToBeProcessed.size(), studNoLike);
         return studentService.processDemographicsEntities(penDemographicsEntitiesToBeProcessed, studNoLike);
