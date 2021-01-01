@@ -8,6 +8,7 @@ import ca.bc.gov.educ.api.pendemog.migration.model.PenAuditEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentHistoryEntity;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,21 @@ public class StudentService {
   @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
   public boolean processDemographicsEntities(List<PenDemographicsEntity> penDemographicsEntities, String studNoLike) {
     var currentLotSize = penDemographicsEntities.size();
+    if (currentLotSize > 15000) {
+      var chunks = Lists.partition(penDemographicsEntities, 10000);
+      for (var chunk : chunks) {
+        processChunk(chunk, studNoLike, currentLotSize);
+      }
+    } else {
+      processChunk(penDemographicsEntities, studNoLike, currentLotSize);
+    }
+
+
+    log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
+    return true;
+  }
+
+  private void processChunk(List<PenDemographicsEntity> penDemographicsEntities, String studNoLike, int currentLotSize) {
     List<StudentEntity> studentEntities = new ArrayList<>();
     var index = 1;
     for (var penDemog : penDemographicsEntities) {
@@ -90,8 +106,6 @@ public class StudentService {
         throw ex;
       }
     }
-    log.info("total number of records processed :: {}", CounterUtil.processCounter.incrementAndGet());
-    return true;
   }
 
 

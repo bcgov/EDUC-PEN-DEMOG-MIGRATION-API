@@ -71,7 +71,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   @PostConstruct
   public void init() {
-    for (var i = 1000; i < 2000; i++) {
+    for (var i = 100; i < 200; i++) {
       studNoSet.add("" + i);
     }
     studNoSet.add("2");
@@ -80,7 +80,7 @@ public class PenDemographicsMigrationService implements Closeable {
     studNoSet.add("5");
     studNoSet.add("6");
     studNoSet.add("7");
-    for (var i = 8000; i < 10000; i++) {
+    for (var i = 800; i < 1000; i++) {
       studNoSet.add("" + i);
     }
 
