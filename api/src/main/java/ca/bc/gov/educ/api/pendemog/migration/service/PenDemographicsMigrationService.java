@@ -217,16 +217,16 @@ public class PenDemographicsMigrationService implements Closeable {
                 && StringUtils.isNotBlank(penAuditEntity.getActivityDate()) && studentHistory.getCreateDate().isEqual(getLocalDateTimeFromString(penAuditEntity.getActivityDate()))
                 && StringUtils.equals(StringUtils.trim(penAuditEntity.getCreateUser()), studentHistory.getCreateUser())
                 && StringUtils.equals(getHistoryActivityCode(StringUtils.trim(penAuditEntity.getAuditCode())), studentHistory.getHistoryActivityCode())) {
+              studentHistoryEntities.remove(studentHistory);
               penAuditEntities.remove(penAuditEntity);
             }
           }
         }
       }
       log.debug("Pen Audit entities after filter :: {}", penAuditEntities.size());
-      List<PenAuditEntity> filteredAuditEntities = new CopyOnWriteArrayList<>(penAuditEntities);
-      if (!filteredAuditEntities.isEmpty()) {
-        log.debug("Found {} records which are not processed and now processing.", filteredAuditEntities.size());
-        return studentService.processDemographicsAuditEntities(filteredAuditEntities, penStudIDMap);
+      if (!penAuditEntities.isEmpty()) {
+        log.debug("Found {} records which are not processed and now processing.", penAuditEntities.size());
+        return studentService.processDemographicsAuditEntities(penAuditEntities, penStudIDMap);
       }
     }
     return Collections.emptyList();
