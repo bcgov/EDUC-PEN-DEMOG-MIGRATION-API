@@ -57,7 +57,6 @@ public class StudentEntity {
   @PastOrPresent
   LocalDate deceasedDate;
   @Size(max = 7)
-  @Pattern(regexp = "^([A-Z]\\d[A-Z]\\d[A-Z]\\d|)$", message = "Invalid postal code")
   @Column(name = "POSTAL_CODE")
   String postalCode;
   @Column(name = "MINCODE")
