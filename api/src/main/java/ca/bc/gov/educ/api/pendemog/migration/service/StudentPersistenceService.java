@@ -28,7 +28,6 @@ public class StudentPersistenceService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 10, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudents(List<StudentEntity> studentEntities) {
     if (studentEntities.size() > 1000) {
       List<List<StudentEntity>> subSets = Lists.partition(studentEntities, 1000);

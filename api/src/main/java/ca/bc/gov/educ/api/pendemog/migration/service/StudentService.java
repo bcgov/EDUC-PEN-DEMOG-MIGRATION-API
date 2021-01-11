@@ -45,7 +45,6 @@ public class StudentService {
     log.info("Added all the grade codes {}", gradeCodes.size());
   }
 
-  @Retryable(value = {Exception.class}, backoff = @Backoff(multiplier = 2, delay = 2000))
   public boolean processDemographicsEntities(List<PenDemographicsEntity> penDemographicsEntities, String studNoLike) {
     var currentLotSize = penDemographicsEntities.size();
     if (currentLotSize > 15000) {
@@ -84,11 +83,11 @@ public class StudentService {
           mappedStudentRecord.setLegalLastName("NULL");
         }
         if(StringUtils.isBlank(mappedStudentRecord.getCreateUser())){
-          log.info("updating create user from null or blank");
+          log.debug("updating create user from null or blank");
           mappedStudentRecord.setCreateUser("PEN_MIGRATION_API");
         }
         if(StringUtils.isBlank(mappedStudentRecord.getUpdateUser())){
-          log.info("updating update user from null or blank");
+          log.debug("updating update user from null or blank");
           mappedStudentRecord.setUpdateUser("PEN_MIGRATION_API");
         }
         studentEntities.add(mappedStudentRecord);
