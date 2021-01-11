@@ -27,6 +27,12 @@ public  abstract class PenDemogDecorator implements PenDemogStudentMapper {
     entity.setCreateDate(getLocalDateTimeFromString(penDemographicsEntity.getCreateDate()));
     entity.setUpdateDate(getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate()));
     entity.setPostalCode(formatPostalCode(penDemographicsEntity.getPostalCode()));
+    if(entity.getCreateUser() == null){
+      entity.setCreateUser("PEN_MIGRATION_API");
+    }
+    if(entity.getUpdateUser() == null){
+      entity.setUpdateUser("PEN_MIGRATION_API");
+    }
     return entity;
   }
 
@@ -45,7 +51,7 @@ public  abstract class PenDemogDecorator implements PenDemogStudentMapper {
 
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {
     if (dateTime == null) {
-      return null;
+      return LocalDateTime.now();
     } else {
       dateTime = dateTime.trim();
       if (StringUtils.length(dateTime) > 19) {
