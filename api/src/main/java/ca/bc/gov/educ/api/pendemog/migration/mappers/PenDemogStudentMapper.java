@@ -32,7 +32,6 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "deceasedDate", ignore = true)
   @Mapping(target = "createDate", ignore = true)
   @Mapping(target = "updateDate", ignore = true)
-  @Mapping(target = "dob", ignore = true)
   @Mapping(target = "postalCode", ignore = true)
   StudentEntity toStudent(PenDemographicsEntity penDemographicsEntity);
 }
