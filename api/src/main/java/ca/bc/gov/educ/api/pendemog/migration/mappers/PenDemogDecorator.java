@@ -27,12 +27,6 @@ public  abstract class PenDemogDecorator implements PenDemogStudentMapper {
     entity.setCreateDate(getLocalDateTimeFromString(penDemographicsEntity.getCreateDate()));
     entity.setUpdateDate(getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate()));
     entity.setPostalCode(formatPostalCode(penDemographicsEntity.getPostalCode()));
-    if(entity.getCreateUser() == null){
-      entity.setCreateUser("PEN_MIGRATION_API");
-    }
-    if(entity.getUpdateUser() == null){
-      entity.setUpdateUser("PEN_MIGRATION_API");
-    }
     return entity;
   }
 

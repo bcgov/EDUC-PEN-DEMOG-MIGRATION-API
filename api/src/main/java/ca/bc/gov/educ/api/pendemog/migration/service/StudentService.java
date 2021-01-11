@@ -83,6 +83,14 @@ public class StudentService {
         if (mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")) {
           mappedStudentRecord.setLegalLastName("NULL");
         }
+        if(mappedStudentRecord.getCreateUser() == null){
+          log.info("updating create user from null");
+          mappedStudentRecord.setCreateUser("PEN_MIGRATION_API");
+        }
+        if(mappedStudentRecord.getUpdateUser() == null){
+          log.info("updating update user from null");
+          mappedStudentRecord.setUpdateUser("PEN_MIGRATION_API");
+        }
         studentEntities.add(mappedStudentRecord);
       } else {
         log.error("NO PEN AND STUD BIRTH skipping this record at index {}, for studNoLike {}", index, studNoLike);

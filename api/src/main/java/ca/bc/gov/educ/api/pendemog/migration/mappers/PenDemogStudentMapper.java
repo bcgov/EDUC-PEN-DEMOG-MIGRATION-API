@@ -33,5 +33,7 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "createDate", ignore = true)
   @Mapping(target = "updateDate", ignore = true)
   @Mapping(target = "postalCode", ignore = true)
+  @Mapping(target = "createUser", source = "createUser", defaultValue = "PEN_MIGRATION_API")
+  @Mapping(target = "updateUser", source = "updateUser", defaultValue = "PEN_MIGRATION_API")
   StudentEntity toStudent(PenDemographicsEntity penDemographicsEntity);
 }
