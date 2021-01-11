@@ -2,11 +2,13 @@ package ca.bc.gov.educ.api.pendemog.migration.mappers;
 
 import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
+import org.mapstruct.DecoratedWith;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(uses = {StringMapper.class,LocalDateTimeMapper.class})
+@Mapper(uses = {StringMapper.class, LocalDateTimeMapper.class})
+@DecoratedWith(PenDemogDecorator.class)
 public interface PenDemogStudentMapper {
   PenDemogStudentMapper mapper = Mappers.getMapper(PenDemogStudentMapper.class);
 
@@ -28,5 +30,9 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "email", ignore = true)
   @Mapping(target = "dob", ignore = true)
   @Mapping(target = "deceasedDate", ignore = true)
+  @Mapping(target = "createDate", ignore = true)
+  @Mapping(target = "updateDate", ignore = true)
+  @Mapping(target = "dob", ignore = true)
+  @Mapping(target = "postalCode", ignore = true)
   StudentEntity toStudent(PenDemographicsEntity penDemographicsEntity);
 }

@@ -76,14 +76,6 @@ public class StudentService {
         } catch (final Exception e) {
           mappedStudentRecord.setDob(LocalDate.parse("2000-01-01"));
         }
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-        Set<ConstraintViolation<StudentEntity>> violations = validator.validate(mappedStudentRecord);
-        for (var violation : violations) {
-          if ("Invalid postal code".equalsIgnoreCase(violation.getMessage())) {
-            mappedStudentRecord.setPostalCode(null);
-          }
-        }
         if (mappedStudentRecord.getGradeCode() != null && !gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
           log.debug("updated grade code to null from :: {} at index {}, for studNoLike {}", mappedStudentRecord.getGradeCode(), index, studNoLike);
           mappedStudentRecord.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
