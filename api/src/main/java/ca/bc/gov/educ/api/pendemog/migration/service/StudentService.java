@@ -83,12 +83,12 @@ public class StudentService {
         if (mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")) {
           mappedStudentRecord.setLegalLastName("NULL");
         }
-        if(mappedStudentRecord.getCreateUser() == null){
-          log.info("updating create user from null");
+        if(StringUtils.isBlank(mappedStudentRecord.getCreateUser())){
+          log.info("updating create user from null or blank");
           mappedStudentRecord.setCreateUser("PEN_MIGRATION_API");
         }
-        if(mappedStudentRecord.getUpdateUser() == null){
-          log.info("updating update user from null");
+        if(StringUtils.isBlank(mappedStudentRecord.getUpdateUser())){
+          log.info("updating update user from null or blank");
           mappedStudentRecord.setUpdateUser("PEN_MIGRATION_API");
         }
         studentEntities.add(mappedStudentRecord);
