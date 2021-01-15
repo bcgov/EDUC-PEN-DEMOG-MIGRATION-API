@@ -89,7 +89,7 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, PossibleMatchRepository studentTwinRepository, PossibleMatchService studentTwinService, StudentService studentService) {
+  public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, PossibleMatchRepository possibleMatchRepository, PossibleMatchService possibleMatchService, StudentService studentService) {
     this.partitionSize = applicationProperties.getPartitionSize();
     this.entityManager = entityManager;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
@@ -99,8 +99,8 @@ public class PenDemographicsMigrationService implements Closeable {
     this.studentMergeRepository = studentMergeRepository;
     this.penMergeRepository = penMergeRepository;
     this.penTwinRepository = penTwinRepository;
-    this.possibleMatchRepository = studentTwinRepository;
-    this.possibleMatchService = studentTwinService;
+    this.possibleMatchRepository = possibleMatchRepository;
+    this.possibleMatchService = possibleMatchService;
     this.studentService = studentService;
     executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
