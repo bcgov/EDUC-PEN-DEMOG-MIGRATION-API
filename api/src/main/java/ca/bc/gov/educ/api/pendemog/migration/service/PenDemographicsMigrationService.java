@@ -2,6 +2,7 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
+import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCodes;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PenDemographicsMigrationService implements Closeable {
 
-
+  private final List<String> matchReasonCodes = Arrays.stream(MatchReasonCodes.values()).map(Enum::toString).collect(Collectors.toList());
   private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
@@ -62,9 +63,9 @@ public class PenDemographicsMigrationService implements Closeable {
   @Getter(AccessLevel.PRIVATE)
   private final PenTwinRepository penTwinRepository;
   @Getter(AccessLevel.PRIVATE)
-  private final StudentTwinRepository studentTwinRepository;
+  private final PossibleMatchRepository possibleMatchRepository;
   @Getter(AccessLevel.PRIVATE)
-  private final StudentTwinService studentTwinService;
+  private final PossibleMatchService possibleMatchService;
   private final StudentService studentService;
 
   private final Set<String> studNoSet = new HashSet<>();
@@ -88,7 +89,7 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, StudentTwinRepository studentTwinRepository, StudentTwinService studentTwinService, StudentService studentService) {
+  public PenDemographicsMigrationService(EntityManager entityManager, ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, PenAuditRepository penAuditRepository, StudentRepository studentRepository, StudentHistoryRepository studentHistoryRepository, StudentMergeRepository studentMergeRepository, PenMergeRepository penMergeRepository, PenTwinRepository penTwinRepository, PossibleMatchRepository studentTwinRepository, PossibleMatchService studentTwinService, StudentService studentService) {
     this.partitionSize = applicationProperties.getPartitionSize();
     this.entityManager = entityManager;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
@@ -98,8 +99,8 @@ public class PenDemographicsMigrationService implements Closeable {
     this.studentMergeRepository = studentMergeRepository;
     this.penMergeRepository = penMergeRepository;
     this.penTwinRepository = penTwinRepository;
-    this.studentTwinRepository = studentTwinRepository;
-    this.studentTwinService = studentTwinService;
+    this.possibleMatchRepository = studentTwinRepository;
+    this.possibleMatchService = studentTwinService;
     this.studentService = studentService;
     executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
@@ -367,7 +368,7 @@ public class PenDemographicsMigrationService implements Closeable {
     log.info("Starting data migration of Twins");
     List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (String studNo : studNoSet) {
-      final Callable<Boolean> callable = () -> processTwinForPenLike(studNo);
+      final Callable<Boolean> callable = () -> processPossibleMatchForPenLike(studNo);
       futures.add(executorService.submit(callable));
     }
     if (!futures.isEmpty()) {
@@ -387,9 +388,9 @@ public class PenDemographicsMigrationService implements Closeable {
 
   }
 
-  private Boolean processTwinForPenLike(String penLike) {
+  private Boolean processPossibleMatchForPenLike(String penLike) {
 
-    List<StudentTwinEntity> twinEntities = new CopyOnWriteArrayList<>();
+    List<PossibleMatchEntity> possibleMatchEntities = new CopyOnWriteArrayList<>();
     var penTwins = getPenTwinRepository().findByPenTwin1Like(penLike + "%");
     var studentTwins = getStudentRepository().findByPenLike(penLike + "%");
     var studentTwinMap = studentTwins.stream()
@@ -411,22 +412,28 @@ public class PenDemographicsMigrationService implements Closeable {
           if (studentEntity2.isPresent()) {
             student1 = studentEntity1.get();
             student2 = studentEntity2.get();
-            Optional<StudentTwinEntity> dbEntity = getStudentTwinRepository().findByStudentIDAndTwinStudent(student1.getStudentID(), student2);
+            Optional<PossibleMatchEntity> dbEntity = getPossibleMatchRepository().findByStudentIDAndMatchedStudentID(student1.getStudentID(), student2.getStudentID());
             if (dbEntity.isEmpty()) {
-              StudentTwinEntity studentTwinEntity = new StudentTwinEntity();
-              studentTwinEntity.setCreateDate(LocalDateTime.now());
-              studentTwinEntity.setUpdateDate(LocalDateTime.now());
+              PossibleMatchEntity possibleMatchEntity = new PossibleMatchEntity();
+              possibleMatchEntity.setCreateDate(LocalDateTime.now());
+              possibleMatchEntity.setUpdateDate(LocalDateTime.now());
               if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
-                studentTwinEntity.setCreateUser(penTwinsEntity.getTwinUserId().trim());
-                studentTwinEntity.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
+                possibleMatchEntity.setCreateUser(penTwinsEntity.getTwinUserId().trim());
+                possibleMatchEntity.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
               } else {
-                studentTwinEntity.setCreateUser("PEN_DEMOG_MIGRATION_API");
-                studentTwinEntity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+                possibleMatchEntity.setCreateUser("PEN_DEMOG_MIGRATION_API");
+                possibleMatchEntity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
               }
-              studentTwinEntity.setStudentTwinReasonCode("PENMATCH");
-              studentTwinEntity.setStudentID(student1.getStudentID());
-              studentTwinEntity.setTwinStudent(student2);
-              twinEntities.add(studentTwinEntity);
+
+              if (!StringUtils.isBlank(penTwinsEntity.getTwinReason()) && matchReasonCodes.contains(penTwinsEntity.getTwinReason().trim().toUpperCase())) {
+                possibleMatchEntity.setMatchReasonCode(penTwinsEntity.getTwinReason().trim().toUpperCase());
+              }else{
+                possibleMatchEntity.setMatchReasonCode("PENMATCH");
+              }
+
+              possibleMatchEntity.setStudentID(student1.getStudentID());
+              possibleMatchEntity.setMatchedStudentID(student2.getStudentID());
+              possibleMatchEntities.add(possibleMatchEntity);
             } else {
               log.debug("Record is present. for PEN :: {} and PEN :: {}", penTwinsEntity.getPenTwin1().trim(), penTwinsEntity.getPenTwin2().trim());
             }
@@ -438,9 +445,9 @@ public class PenDemographicsMigrationService implements Closeable {
         }
 
       });
-      if (!twinEntities.isEmpty()) {
-        log.info("created {} twinned entities", twinEntities.size());
-        getStudentTwinService().saveTwinnedEntities(twinEntities);
+      if (!possibleMatchEntities.isEmpty()) {
+        log.info("created {} possible match entities", possibleMatchEntities.size());
+        getPossibleMatchService().savePossibleMatchEntities(possibleMatchEntities);
       }
     }
     return true;
