@@ -17,15 +17,15 @@ pipeline{
       STAGING_ENV = 'Dev'
       TARGET_ENVIRONMENT = "${NAMESPACE}-${TARGET_ENV}"
 
-      APP_DOMAIN = 'pathfinder.gov.bc.ca'
+      APP_DOMAIN = 'apps.silver.devops.gov.bc.ca'
       SOURCE_REPO_REF = 'master'
       SOURCE_REPO_URL = 'https://github.com/${OWNER}/${REPO_NAME}.git'
       DC_URL = "https://raw.githubusercontent.com/${OWNER}/${REPO_NAME}/master/tools/openshift/api.dc.yaml"
       MIN_REPLICAS = "1"
       MAX_REPLICAS = "1"
       MIN_CPU = "1000m"
-      MAX_CPU = "8000m"
-      MIN_MEM = "8050Mi"
+      MAX_CPU = "6000m"
+      MIN_MEM = "6050Mi"
       MAX_MEM = "12050Mi"
   }
   stages{
