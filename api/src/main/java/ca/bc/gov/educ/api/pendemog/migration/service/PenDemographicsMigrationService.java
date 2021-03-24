@@ -355,6 +355,7 @@ public class PenDemographicsMigrationService implements Closeable {
     mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
     mergeTOEntity.setStudentMergeDirectionCode(direction);
     mergeTOEntity.setStudentID(studentId);
+    mergeTOEntity.setMergeStudentID(mergeStudent.getStudentID());
     mergeTOEntity.setCreateDate(LocalDateTime.now());
     mergeTOEntity.setUpdateDate(LocalDateTime.now());
     mergeTOEntity.setCreateUser(mergeStudent.getCreateUser());
