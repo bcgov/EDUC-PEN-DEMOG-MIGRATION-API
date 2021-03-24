@@ -1,7 +1,7 @@
 package ca.bc.gov.educ.api.pendemog.migration.service;
 
-import ca.bc.gov.educ.api.pendemog.migration.model.StudentTwinEntity;
-import ca.bc.gov.educ.api.pendemog.migration.repository.StudentTwinRepository;
+import ca.bc.gov.educ.api.pendemog.migration.model.PossibleMatchEntity;
+import ca.bc.gov.educ.api.pendemog.migration.repository.PossibleMatchRepository;
 import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,22 +20,22 @@ import java.util.List;
 public class StudentTwinService {
 
   @Getter(AccessLevel.PRIVATE)
-  private final StudentTwinRepository studentTwinRepository;
+  private final PossibleMatchRepository possibleMatchRepository;
 
   @Autowired
-  public StudentTwinService(StudentTwinRepository studentTwinRepository) {
-    this.studentTwinRepository = studentTwinRepository;
+  public StudentTwinService(PossibleMatchRepository possibleMatchRepository) {
+    this.possibleMatchRepository = possibleMatchRepository;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 10, backoff = @Backoff(multiplier = 3, delay = 2000))
-  public void saveTwinnedEntities(List<StudentTwinEntity> twinEntities){
+  public void saveTwinnedEntities(List<PossibleMatchEntity> twinEntities){
     if (twinEntities.size() > 1000) {
-      List<List<StudentTwinEntity>> subSets = Lists.partition(twinEntities, 1000);
+      List<List<PossibleMatchEntity>> subSets = Lists.partition(twinEntities, 1000);
       log.info("created subset of {} twinned entities", subSets.size());
-      subSets.forEach(studentTwinEntities -> getStudentTwinRepository().saveAll(studentTwinEntities));
+      subSets.forEach(studentTwinEntities -> getPossibleMatchRepository().saveAll(studentTwinEntities));
     } else {
-      getStudentTwinRepository().saveAll(twinEntities);
+      getPossibleMatchRepository().saveAll(twinEntities);
     }
   }
 }
