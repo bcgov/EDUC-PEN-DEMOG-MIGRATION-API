@@ -15,21 +15,27 @@ import java.time.format.DateTimeParseException;
 public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper {
   private final PenAuditStudentHistoryMapper delegate;
 
-  protected PenAuditDecorator(PenAuditStudentHistoryMapper mapper) {
+  protected PenAuditDecorator(final PenAuditStudentHistoryMapper mapper) {
     this.delegate = mapper;
   }
 
   @Override
-  public StudentHistoryEntity toStudentHistory(PenAuditEntity penAuditEntity) {
-    var entity = delegate.toStudentHistory(penAuditEntity);
+  public StudentHistoryEntity toStudentHistory(final PenAuditEntity penAuditEntity) {
+    final var entity = this.delegate.toStudentHistory(penAuditEntity);
     if (entity == null) {
       return null;
     }
-    entity.setCreateDate(getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
-    entity.setUpdateDate(getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
-    entity.setHistoryActivityCode(getHistoryActivityCode(penAuditEntity.getAuditCode()));
-    entity.setDob(getDobFromString(penAuditEntity.getDob()));
-    entity.setPostalCode(formatPostalCode(entity.getPostalCode()));
+    entity.setCreateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
+    entity.setUpdateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
+    entity.setHistoryActivityCode(this.getHistoryActivityCode(penAuditEntity.getAuditCode()));
+    entity.setDob(this.getDobFromString(penAuditEntity.getDob(), entity.getPen()));
+    entity.setPostalCode(this.formatPostalCode(entity.getPostalCode()));
+    if (StringUtils.isBlank(entity.getCreateUser())) {
+      entity.setCreateUser("PEN_DEMOG_MIGRATION_API");
+    }
+    if (StringUtils.isBlank(entity.getUpdateUser())) {
+      entity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+    }
     return entity;
   }
 
@@ -54,7 +60,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
         dateTime = dateTime.substring(0, 19);
       }
     }
-    var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    final var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     try {
       return LocalDateTime.parse(dateTime, pattern);
     } catch (final DateTimeParseException exception) {
@@ -63,7 +69,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     return LocalDateTime.now();
   }
 
-  private LocalDate getDobFromString(String dob) {
+  private LocalDate getDobFromString(String dob, final String pen) {
     if (dob == null) {
       log.error("system will use current date as dob was null");
       return LocalDate.now();
@@ -73,16 +79,17 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
         dob = dob.substring(0, 8);
       }
     }
-    var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
+    final var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
     try {
       return LocalDate.parse(dob, pattern);
     } catch (final DateTimeParseException exception) {
-      log.error("system will use current date as parsing error of dob :: {}, error :: {}", dob, exception);
+      log.info("system will use current date as parsing error of dob :: {}, pen :: {}", dob, pen); // pen is used for
+      // logging purpose.
     }
     return LocalDate.now();
   }
 
-  private String getHistoryActivityCode(String auditCode) {
+  private String getHistoryActivityCode(final String auditCode) {
     if (auditCode != null) {
       return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.USER_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
     }
