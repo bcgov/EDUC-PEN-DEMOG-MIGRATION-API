@@ -25,8 +25,8 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     if (entity == null) {
       return null;
     }
-    entity.setCreateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
-    entity.setUpdateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate()));
+    entity.setCreateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate(), entity.getPen()));
+    entity.setUpdateDate(this.getLocalDateTimeFromString(penAuditEntity.getActivityDate(), entity.getPen()));
     entity.setHistoryActivityCode(this.getHistoryActivityCode(penAuditEntity.getAuditCode()));
     entity.setDob(this.getDobFromString(penAuditEntity.getDob(), entity.getPen()));
     entity.setPostalCode(this.formatPostalCode(entity.getPostalCode()));
@@ -51,7 +51,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     return postalCode;
   }
 
-  private LocalDateTime getLocalDateTimeFromString(String dateTime) {
+  private LocalDateTime getLocalDateTimeFromString(String dateTime, final String pen) {
     if (dateTime == null) {
       return null;
     } else {
@@ -64,7 +64,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     try {
       return LocalDateTime.parse(dateTime, pattern);
     } catch (final DateTimeParseException exception) {
-      log.error("system will use current date time as parsing error of date :: {}, error :: {}", dateTime, exception);
+      log.info("system will use current date time as parsing error of date :: {}, pen :: {}", dateTime, pen);
     }
     return LocalDateTime.now();
   }
