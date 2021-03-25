@@ -19,7 +19,7 @@ import java.util.UUID;
  * The type Possible match entity.
  */
 @Entity
-@Table(name = "POSSIBLE_MATCH")
+@Table(name = "API_PEN_MATCH.POSSIBLE_MATCH")
 @Data
 @Builder
 @AllArgsConstructor
