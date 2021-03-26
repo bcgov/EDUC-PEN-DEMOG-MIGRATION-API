@@ -123,8 +123,8 @@ public class StudentService {
                 recordCount.get(), penAuditEntity.getPen());
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
           }
-          if (studentHistory.getDemogCode() != null && !this.demogCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
-            log.info("updated demog code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(),
+          if (studentHistory.getDemogCode() != null && !this.demogCodes.contains(studentHistory.getDemogCode().trim().toUpperCase())) {
+            log.info("updated demog code to null from :: {} at index {}, for pen {}", studentHistory.getDemogCode(),
                 recordCount.get(), penAuditEntity.getPen());
             studentHistory.setDemogCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or
             // anything which is not present in DB.
