@@ -31,10 +31,10 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     entity.setDob(this.getDobFromString(penAuditEntity.getDob(), entity.getPen()));
     entity.setPostalCode(this.formatPostalCode(entity.getPostalCode()));
     if (StringUtils.isBlank(entity.getCreateUser())) {
-      entity.setCreateUser("PEN_DEMOG_MIGRATION_API");
+      entity.setCreateUser("PEN_MIGRATION_API");
     }
     if (StringUtils.isBlank(entity.getUpdateUser())) {
-      entity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+      entity.setUpdateUser("PEN_MIGRATION_API");
     }
     return entity;
   }

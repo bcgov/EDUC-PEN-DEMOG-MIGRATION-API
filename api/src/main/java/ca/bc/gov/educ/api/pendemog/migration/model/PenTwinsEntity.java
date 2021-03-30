@@ -14,7 +14,7 @@ import javax.persistence.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Immutable
-@Table(name = "PEN_TWINS@PENLINK.WORLD")
+@Table(name = "RDB_PEN_TWINS")
 @IdClass(PenTwinsPK.class)
 public class PenTwinsEntity {
 

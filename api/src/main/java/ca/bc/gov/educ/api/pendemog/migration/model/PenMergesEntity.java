@@ -15,7 +15,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 @Immutable
-@Table(name = "PEN_MERGES@PENLINK.WORLD")
+@Table(name = "RDB_PEN_MERGES")
 @IdClass(PenMergePK.class)
 public class PenMergesEntity implements Serializable {
 

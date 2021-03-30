@@ -15,7 +15,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 @Immutable
-@Table(name = "PEN_AUDIT@PENLINK.WORLD")
+@Table(name = "RDB_PEN_AUDIT")
 @IdClass(PenAuditPK.class)
 public class PenAuditEntity implements Serializable {
 

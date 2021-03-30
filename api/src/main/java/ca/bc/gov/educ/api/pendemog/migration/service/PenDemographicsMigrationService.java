@@ -2,6 +2,7 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
+import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCodes;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -413,16 +414,22 @@ public class PenDemographicsMigrationService implements Closeable {
             Optional<PossibleMatchEntity> dbEntity = getPossibleMatchRepository().findByStudentIDAndMatchedStudentID(student1.getStudentID(), student2.getStudentID());
             if (dbEntity.isEmpty()) {
               PossibleMatchEntity possibleMatchEntity = new PossibleMatchEntity();
-              possibleMatchEntity.setCreateDate(LocalDateTime.now());
-              possibleMatchEntity.setUpdateDate(LocalDateTime.now());
+              possibleMatchEntity.setCreateDate(getLocalDateTimeFromString(penTwinsEntity.getTwinDate()));
+              possibleMatchEntity.setUpdateDate(getLocalDateTimeFromString(penTwinsEntity.getTwinDate()));
               if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
                 possibleMatchEntity.setCreateUser(penTwinsEntity.getTwinUserId().trim());
                 possibleMatchEntity.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
               } else {
-                possibleMatchEntity.setCreateUser("PEN_DEMOG_MIGRATION_API");
-                possibleMatchEntity.setUpdateUser("PEN_DEMOG_MIGRATION_API");
+                possibleMatchEntity.setCreateUser("PEN_MIGRATION_API");
+                possibleMatchEntity.setUpdateUser("PEN_MIGRATION_API");
               }
-              possibleMatchEntity.setMatchReasonCode("PENMATCH");
+              try{
+                MatchReasonCodes.valueOf(penTwinsEntity.getTwinReason());
+                possibleMatchEntity.setMatchReasonCode(penTwinsEntity.getTwinReason());
+              }catch(IllegalArgumentException e){
+                possibleMatchEntity.setMatchReasonCode("PENMATCH");
+              }
+
               possibleMatchEntity.setStudentID(student1.getStudentID());
               possibleMatchEntity.setMatchedStudentID(student2.getStudentID());
               twinEntities.add(possibleMatchEntity);
