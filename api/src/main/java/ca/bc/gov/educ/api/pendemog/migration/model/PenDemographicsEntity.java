@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Immutable
-@Table(name = "RDB_PEN_DEMOG")
+@Table(name = "API_STUDENT.RDB_PEN_DEMOG")
 public class PenDemographicsEntity {
 
   @Id
