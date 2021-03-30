@@ -205,7 +205,7 @@ public class PenDemographicsMigrationService implements Closeable {
     final Map<String, UUID> penStudIDMap = new ConcurrentHashMap<>();
     for (final var item : studentEntities) {
       penStudIDMap.put(item.getPen(), item.getStudentID());
-      penList.add(item.getPen());
+      penList.add(item.getPen() + " ");
       studentIdList.add(item.getStudentID());
     }
     final var penAuditEntities = new CopyOnWriteArrayList<>(this.getPenAuditRepository().findByPenIn(penList));
