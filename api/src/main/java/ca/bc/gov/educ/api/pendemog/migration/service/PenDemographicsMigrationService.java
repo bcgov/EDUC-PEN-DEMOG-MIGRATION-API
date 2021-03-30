@@ -21,9 +21,11 @@ import javax.persistence.Query;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -414,8 +416,14 @@ public class PenDemographicsMigrationService implements Closeable {
             Optional<PossibleMatchEntity> dbEntity = getPossibleMatchRepository().findByStudentIDAndMatchedStudentID(student1.getStudentID(), student2.getStudentID());
             if (dbEntity.isEmpty()) {
               PossibleMatchEntity possibleMatchEntity = new PossibleMatchEntity();
-              possibleMatchEntity.setCreateDate(getLocalDateTimeFromString(penTwinsEntity.getTwinDate()));
-              possibleMatchEntity.setUpdateDate(getLocalDateTimeFromString(penTwinsEntity.getTwinDate()));
+              LocalDate twinDate;
+              try {
+                twinDate = getLocalDateFromString(penTwinsEntity.getTwinDate());
+              }catch(DateTimeParseException e){
+                twinDate = LocalDate.now();
+              }
+              possibleMatchEntity.setCreateDate(twinDate.atStartOfDay());
+              possibleMatchEntity.setUpdateDate(twinDate.atStartOfDay());
               if (penTwinsEntity.getTwinUserId() != null && !"".equalsIgnoreCase(penTwinsEntity.getTwinUserId().trim())) {
                 possibleMatchEntity.setCreateUser(penTwinsEntity.getTwinUserId().trim());
                 possibleMatchEntity.setUpdateUser(penTwinsEntity.getTwinUserId().trim());
