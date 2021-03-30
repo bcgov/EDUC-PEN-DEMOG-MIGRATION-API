@@ -246,9 +246,13 @@ public class PenDemographicsMigrationService implements Closeable {
     return LocalDateTime.parse(dateTime, pattern);
   }
 
-  private LocalDate getLocalDateFromString(final String date) {
-    final var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
-    return LocalDate.parse(date, pattern);
+  private LocalDate getLocalDateFromString(String date) {
+    try {
+      var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
+      return LocalDate.parse(date, pattern);
+    }catch(Exception e){
+      return LocalDate.now();
+    }
   }
 
 
