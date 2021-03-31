@@ -3,6 +3,7 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
 import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCodes;
+import ca.bc.gov.educ.api.pendemog.migration.constants.StudentMergeSourceCodes;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -236,14 +237,17 @@ public class PenDemographicsMigrationService implements Closeable {
 
 
   private LocalDateTime getLocalDateTimeFromString(String dateTime) {
-    if (dateTime == null) {
-      return null;
-    } else {
-      dateTime = dateTime.trim();
-      dateTime = StringUtils.substring(dateTime, 0, 19);
+    try {
+      if(StringUtils.isNotBlank(dateTime)) {
+        dateTime = dateTime.trim();
+        dateTime = StringUtils.substring(dateTime, 0, 19);
+        final var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return LocalDateTime.parse(dateTime, pattern);
+      }
+      return LocalDateTime.now();
+    }catch (Exception e){
+      return LocalDateTime.now();
     }
-    final var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    return LocalDateTime.parse(dateTime, pattern);
   }
 
   private LocalDate getLocalDateFromString(String date) {
@@ -343,29 +347,52 @@ public class PenDemographicsMigrationService implements Closeable {
       log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       final var mergedStudent = this.studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
-        final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudent.get(), originalStudent.get().getStudentID(), "FROM");
-        log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
-        mergeFromEntities.add(mergeFromEntity);
+        Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(originalStudent.get().getPen().toString());
+        if(penDemogs.isPresent()) {
+          final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudent.get(), originalStudent.get().getStudentID(), "FROM", penDemogs.get());
+          log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
+          mergeFromEntities.add(mergeFromEntity);
 
-        final StudentMergeEntity mergeTOEntity = this.createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO");
-        log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
-        mergeTOEntities.add(mergeTOEntity);
+          final StudentMergeEntity mergeTOEntity = this.createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO", penDemogs.get());
+          log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
+          mergeTOEntities.add(mergeTOEntity);
+        } else {
+          log.error("Index {}, pen demogs not for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
+        }
       } else {
         log.error("Index {}, student entity not found for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
       }
     };
   }
 
-  private StudentMergeEntity createMergeEntity(final StudentEntity mergeStudent, final UUID studentId, final String direction) {
+  private StudentMergeEntity createMergeEntity(final StudentEntity mergeStudent, final UUID studentId, final String direction, final PenDemographicsEntity demogEntity) {
     final StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
-    mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
+    try {
+      StudentMergeSourceCodes.valueOf(demogEntity.getMergeToCode());
+      mergeTOEntity.setStudentMergeSourceCode(demogEntity.getMergeToCode());
+    } catch (final Exception e) {
+      mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
+    }
     mergeTOEntity.setStudentMergeDirectionCode(direction);
     mergeTOEntity.setStudentID(studentId);
     mergeTOEntity.setMergeStudentID(mergeStudent.getStudentID());
-    mergeTOEntity.setCreateDate(LocalDateTime.now());
-    mergeTOEntity.setUpdateDate(LocalDateTime.now());
-    mergeTOEntity.setCreateUser(mergeStudent.getCreateUser());
-    mergeTOEntity.setUpdateUser(mergeStudent.getUpdateUser());
+    LocalDateTime mergeDate;
+    try {
+      mergeDate = this.getLocalDateTimeFromString(demogEntity.getMergeToDate());
+    } catch (final DateTimeParseException e) {
+      mergeDate = LocalDateTime.now();
+    }
+    mergeTOEntity.setCreateDate(mergeDate);
+    mergeTOEntity.setUpdateDate(mergeDate);
+
+    if(StringUtils.isNotBlank(demogEntity.getMergeToUserName())){
+      mergeTOEntity.setCreateUser(demogEntity.getMergeToUserName());
+      mergeTOEntity.setUpdateUser(demogEntity.getMergeToUserName());
+    }else{
+      mergeTOEntity.setCreateUser("PEN_MIGRATION_API");
+      mergeTOEntity.setUpdateUser("PEN_MIGRATION_API");
+    }
+
     return mergeTOEntity;
   }
 
