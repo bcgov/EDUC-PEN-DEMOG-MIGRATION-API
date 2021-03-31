@@ -347,7 +347,7 @@ public class PenDemographicsMigrationService implements Closeable {
       log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       final var mergedStudent = this.studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
-        Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(originalStudent.get().getPen().toString() + " ");
+        Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
         if(penDemogs.isPresent()) {
           final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudent.get(), originalStudent.get().getStudentID(), "FROM", penDemogs.get());
           log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
