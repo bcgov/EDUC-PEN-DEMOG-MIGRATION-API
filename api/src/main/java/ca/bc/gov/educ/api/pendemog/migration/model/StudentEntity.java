@@ -81,5 +81,6 @@ public class StudentEntity {
   String updateUser;
   @Column(name = "UPDATE_DATE")
   LocalDateTime updateDate;
-
+  @Column(name = "TRUE_STUDENT_ID", columnDefinition = "BINARY(16)")
+  UUID trueStudentID;
 }

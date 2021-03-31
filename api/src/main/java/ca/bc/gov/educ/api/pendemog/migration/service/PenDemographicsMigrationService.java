@@ -304,20 +304,23 @@ public class PenDemographicsMigrationService implements Closeable {
     log.info("Starting data migration of Merges");
     final List<StudentMergeEntity> mergeFromEntities = new ArrayList<>();
     final List<StudentMergeEntity> mergeTOEntities = new ArrayList<>();
+    final List<StudentEntity> mergedStudents = new ArrayList<>();
     final var penMerges = this.penMergeRepository.findAll();
     if (!penMerges.isEmpty()) {
-      this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities);
+      this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
       final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
       final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
+      final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
       log.info("created subset of {} merge from  entities", mergeFromSubset.size());
       log.info("created subset of {} merge to  entities", mergeToSubset.size());
       mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
       mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
+      mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
     }
     log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records to DB", mergeFromEntities.size(), mergeTOEntities.size());
   }
 
-  private void createMergedRecords(final List<PenMergesEntity> penMerges, final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities) {
+  private void createMergedRecords(final List<PenMergesEntity> penMerges, final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
     final AtomicInteger counter = new AtomicInteger();
     final Map<String, List<String>> mergeEntitiesMap = new HashMap<>();
     for (final var penMerge : penMerges) {
@@ -332,24 +335,27 @@ public class PenDemographicsMigrationService implements Closeable {
       }
     }
     log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());
-    mergeEntitiesMap.forEach(this.findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities, counter));
+    mergeEntitiesMap.forEach(this.findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities,mergedStudents, counter));
   }
 
-  private BiConsumer<String, List<String>> findAndCreateMergeEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final AtomicInteger counter) {
+  private BiConsumer<String, List<String>> findAndCreateMergeEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents, final AtomicInteger counter) {
     return (truePen, penList) -> {
       final var originalStudent = this.studentRepository.findStudentEntityByPen(truePen);
-      penList.parallelStream().forEach(this.createMergeStudentEntities(mergeFromEntities, mergeTOEntities, counter, truePen, originalStudent));
+      penList.parallelStream().forEach(this.createMergeStudentEntities(mergeFromEntities, mergeTOEntities, counter, truePen, originalStudent, mergedStudents));
     };
   }
 
-  private Consumer<String> createMergeStudentEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final AtomicInteger counter, final String truePen, final Optional<StudentEntity> originalStudent) {
+  private Consumer<String> createMergeStudentEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final AtomicInteger counter, final String truePen, final Optional<StudentEntity> originalStudent, final List<StudentEntity> mergedStudents) {
     return penNumber -> {
       log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       final var mergedStudent = this.studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
         Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
         if(penDemogs.isPresent()) {
-          final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudent.get(), originalStudent.get().getStudentID(), "FROM", penDemogs.get());
+          StudentEntity mergedStudentEntity = mergedStudent.get();
+          mergedStudentEntity.setTrueStudentID(originalStudent.get().getStudentID());
+          mergedStudents.add(mergedStudentEntity);
+          final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get());
           log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
           mergeFromEntities.add(mergeFromEntity);
 
