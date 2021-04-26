@@ -2,8 +2,10 @@ package ca.bc.gov.educ.api.pendemog.migration.service;
 
 import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
-import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCodes;
+import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCode;
 import ca.bc.gov.educ.api.pendemog.migration.constants.StudentMergeSourceCodes;
+import ca.bc.gov.educ.api.pendemog.migration.exception.MatchCodeNotFoundException;
+import ca.bc.gov.educ.api.pendemog.migration.mappers.StringMapper;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -431,7 +433,7 @@ public class PenDemographicsMigrationService implements Closeable {
     final var penTwins = this.getPenTwinRepository().findByPenTwin1Like(penLike + "%");
     final var studentTwins = this.getStudentRepository().findByPenLike(penLike + "%");
     final var studentTwinMap = studentTwins.stream()
-        .collect(Collectors.toMap(StudentEntity::getPen, studentEntity -> studentEntity));
+            .collect(Collectors.toMap(StudentEntity::getPen, studentEntity -> studentEntity));
     log.info("found {} records .", penTwins.size());
     if (!penTwins.isEmpty()) {
       penTwins.forEach(penTwinsEntity -> {
@@ -468,10 +470,10 @@ public class PenDemographicsMigrationService implements Closeable {
                 possibleMatchEntity.setUpdateUser("PEN_MIGRATION_API");
               }
               try {
-                MatchReasonCodes.valueOf(penTwinsEntity.getTwinReason());
-                possibleMatchEntity.setMatchReasonCode(penTwinsEntity.getTwinReason());
-              } catch (final IllegalArgumentException e) {
-                possibleMatchEntity.setMatchReasonCode("PENMATCH");
+                possibleMatchEntity.setMatchReasonCode(findByOldCode(penTwinsEntity.getTwinReason()).getPrrCode());
+              } catch (final MatchCodeNotFoundException e) {
+                log.info("Match reason code not found for value :: {}", penTwinsEntity.getTwinReason());
+                possibleMatchEntity.setMatchReasonCode(MatchReasonCode.PENMATCH.getPrrCode());
               }
 
               possibleMatchEntity.setStudentID(student1.getStudentID());
@@ -496,6 +498,9 @@ public class PenDemographicsMigrationService implements Closeable {
     return true;
   }
 
+  private MatchReasonCode findByOldCode(final String oldCode) throws MatchCodeNotFoundException {
+    return Arrays.stream(MatchReasonCode.values()).filter(value -> value.getOldCode().equals(oldCode)).findFirst().orElseThrow(() -> new MatchCodeNotFoundException());
+  }
 
   @Override
   public void close() {
