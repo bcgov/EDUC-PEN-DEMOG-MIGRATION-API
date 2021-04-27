@@ -6,63 +6,41 @@ import lombok.Getter;
  * The enum Student merge source codes.
  */
 public enum StudentMergeSourceCodes {
-  /**
-   * BM Merge Code
-   */
-  BM("BM"),
-  /**
-   * DE Merge Code
-   */
-  DE("DE"),
-  /**
-   * DR Merge Code
-   */
-  DR("DR"),
-  /**
-   * IF Merge Code
-   */
-  IF("IF"),
-  /**
-   * MA Merge Code
-   */
-  MA("MA"),
-  /**
-   * Ministry Merge Code
-   */
-  MI("MI"),
-  /**
-   * PR Merge Code
-   */
-  PR("PR"),
-  /**
-   * SC Merge Code
-   */
-  SC("SC"),
-  /**
-   * SD Merge Code
-   */
-  SD("SD"),
-  /**
-   * SR Merge Code
-   */
-  SR("SR"),
-  /**
-   * TX Merge Code
-   */
-  TX("TX");
+  SCHOOL("SCHOOL", "SCHOOL"),
 
-  /**
-   * The Code.
-   */
+  STUDENT("STUDENT", "STUDENT"),
+
+  BM("BM", "BM"),
+
+  DE("DE", "DE"),
+
+  DR("DR", "DR"),
+
+  FR("FR", "FR"),
+
+  IF("IF", "IF"),
+
+  MA("MA", "MA"),
+
+  MI("MI", "MINISTRY"),
+
+  PR("PR", "PR"),
+
+  SC("SC", "SC"),
+
+  SD("SD", "SD"),
+
+  SR("SR", "SR"),
+
+  TX("TX", "TX");
+
   @Getter
-  private final String code;
+  private final String oldCode;
+  @Getter
+  private final String prrCode;
 
-  /**
-   * Instantiates a new student merge source code.
-   *
-   * @param code the code
-   */
-  StudentMergeSourceCodes(final String code) {
-    this.code = code;
+  StudentMergeSourceCodes(String oldCode, String prrCode) {
+    this.oldCode = oldCode;
+    this.prrCode = prrCode;
   }
 }

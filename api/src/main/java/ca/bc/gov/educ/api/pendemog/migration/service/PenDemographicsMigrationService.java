@@ -4,8 +4,7 @@ import ca.bc.gov.educ.api.pendemog.migration.CounterUtil;
 import ca.bc.gov.educ.api.pendemog.migration.constants.HistoryActivityCode;
 import ca.bc.gov.educ.api.pendemog.migration.constants.MatchReasonCode;
 import ca.bc.gov.educ.api.pendemog.migration.constants.StudentMergeSourceCodes;
-import ca.bc.gov.educ.api.pendemog.migration.exception.MatchCodeNotFoundException;
-import ca.bc.gov.educ.api.pendemog.migration.mappers.StringMapper;
+import ca.bc.gov.educ.api.pendemog.migration.exception.CodeNotFoundException;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
@@ -375,12 +374,14 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private StudentMergeEntity createMergeEntity(final StudentEntity mergeStudent, final UUID studentId, final String direction, final PenDemographicsEntity demogEntity) {
     final StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
+
     try {
-      StudentMergeSourceCodes.valueOf(demogEntity.getMergeToCode());
-      mergeTOEntity.setStudentMergeSourceCode(demogEntity.getMergeToCode());
-    } catch (final Exception e) {
-      mergeTOEntity.setStudentMergeSourceCode("MINISTRY");
+      mergeTOEntity.setStudentMergeSourceCode(findByOldMergeCode(demogEntity.getMergeToCode()).getPrrCode());
+    } catch (final CodeNotFoundException e) {
+      log.info("Merge source code not found for value :: {}", demogEntity.getMergeToCode());
+      mergeTOEntity.setStudentMergeSourceCode(StudentMergeSourceCodes.MI.getPrrCode());
     }
+
     mergeTOEntity.setStudentMergeDirectionCode(direction);
     mergeTOEntity.setStudentID(studentId);
     mergeTOEntity.setMergeStudentID(mergeStudent.getStudentID());
@@ -471,7 +472,7 @@ public class PenDemographicsMigrationService implements Closeable {
               }
               try {
                 possibleMatchEntity.setMatchReasonCode(findByOldCode(penTwinsEntity.getTwinReason()).getPrrCode());
-              } catch (final MatchCodeNotFoundException e) {
+              } catch (final CodeNotFoundException e) {
                 log.info("Match reason code not found for value :: {}", penTwinsEntity.getTwinReason());
                 possibleMatchEntity.setMatchReasonCode(MatchReasonCode.PENMATCH.getPrrCode());
               }
@@ -498,8 +499,12 @@ public class PenDemographicsMigrationService implements Closeable {
     return true;
   }
 
-  private MatchReasonCode findByOldCode(final String oldCode) throws MatchCodeNotFoundException {
-    return Arrays.stream(MatchReasonCode.values()).filter(value -> value.getOldCode().equals(oldCode)).findFirst().orElseThrow(() -> new MatchCodeNotFoundException());
+  private StudentMergeSourceCodes findByOldMergeCode(final String oldCode) throws CodeNotFoundException {
+    return Arrays.stream(StudentMergeSourceCodes.values()).filter(value -> value.getOldCode().equals(oldCode)).findFirst().orElseThrow(() -> new CodeNotFoundException());
+  }
+
+  private MatchReasonCode findByOldCode(final String oldCode) throws CodeNotFoundException {
+    return Arrays.stream(MatchReasonCode.values()).filter(value -> value.getOldCode().equals(oldCode)).findFirst().orElseThrow(() -> new CodeNotFoundException());
   }
 
   @Override
