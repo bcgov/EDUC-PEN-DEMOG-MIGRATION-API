@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -354,8 +355,10 @@ public class PenDemographicsMigrationService implements Closeable {
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
         Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
         if(penDemogs.isPresent()) {
+          val trueStudentID = originalStudent.get().getStudentID();
           StudentEntity mergedStudentEntity = mergedStudent.get();
-          mergedStudentEntity.setTrueStudentID(originalStudent.get().getStudentID());
+          mergedStudentEntity.setTrueStudentID(trueStudentID);
+          log.info("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
           mergedStudents.add(mergedStudentEntity);
           final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get());
           log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
