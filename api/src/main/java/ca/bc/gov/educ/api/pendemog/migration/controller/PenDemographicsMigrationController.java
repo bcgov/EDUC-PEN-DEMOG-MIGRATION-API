@@ -6,6 +6,7 @@ import ca.bc.gov.educ.api.pendemog.migration.service.PenDemographicsMigrationSer
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
@@ -53,6 +54,7 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   }
 
   @Override
+  @Transactional
   public ResponseEntity<Void> kickOffMergesMigrationProcess() {
     executorService.execute(penDemographicsMigrationService::processMigrationOfMerges);
     return ResponseEntity.noContent().build();

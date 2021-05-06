@@ -314,11 +314,12 @@ public class PenDemographicsMigrationService implements Closeable {
       final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
       log.info("created subset of {} merge from  entities", mergeFromSubset.size());
       log.info("created subset of {} merge to  entities", mergeToSubset.size());
+      log.info("created subset of {} student  entities", mergedStudentsSubset.size());
       mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
       mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
       mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
     }
-    log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records to DB", mergeFromEntities.size(), mergeTOEntities.size());
+    log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
   }
 
   private void createMergedRecords(final List<PenMergesEntity> penMerges, final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
@@ -342,7 +343,7 @@ public class PenDemographicsMigrationService implements Closeable {
   private BiConsumer<String, List<String>> findAndCreateMergeEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents, final AtomicInteger counter) {
     return (truePen, penList) -> {
       final var originalStudent = this.studentRepository.findStudentEntityByPen(truePen);
-      penList.parallelStream().forEach(this.createMergeStudentEntities(mergeFromEntities, mergeTOEntities, counter, truePen, originalStudent, mergedStudents));
+      penList.forEach(this.createMergeStudentEntities(mergeFromEntities, mergeTOEntities, counter, truePen, originalStudent, mergedStudents));
     };
   }
 
