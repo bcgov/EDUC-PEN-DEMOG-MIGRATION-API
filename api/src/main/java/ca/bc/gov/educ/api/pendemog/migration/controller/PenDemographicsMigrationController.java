@@ -66,6 +66,12 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
     return ResponseEntity.noContent().build();
   }
 
+  @Override
+  public ResponseEntity<Void> kickOffMemoMigrationProcess() {
+    executorService.execute(penDemographicsMigrationService::processMigrationOfMemo);
+    return ResponseEntity.noContent().build();
+  }
+
   public ResponseEntity<Void> testQuery(String sql) {
     try(var resultSet = dataSource.getConnection().prepareStatement(sql).executeQuery()) {
       log.info(sql);

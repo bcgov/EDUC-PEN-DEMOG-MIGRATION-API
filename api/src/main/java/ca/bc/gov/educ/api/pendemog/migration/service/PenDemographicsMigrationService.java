@@ -69,6 +69,8 @@ public class PenDemographicsMigrationService implements Closeable {
   @Getter(AccessLevel.PRIVATE)
   private final PossibleMatchRepository possibleMatchRepository;
   @Getter(AccessLevel.PRIVATE)
+  private final PenMemoRepository penMemoRepository;
+  @Getter(AccessLevel.PRIVATE)
   private final StudentTwinService studentTwinService;
   private final StudentService studentService;
 
@@ -93,7 +95,7 @@ public class PenDemographicsMigrationService implements Closeable {
   }
 
   @Autowired
-  public PenDemographicsMigrationService(final EntityManager entityManager, final ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, final PenAuditRepository penAuditRepository, final StudentRepository studentRepository, final StudentHistoryRepository studentHistoryRepository, final StudentMergeRepository studentMergeRepository, final PenMergeRepository penMergeRepository, final PenTwinRepository penTwinRepository, final PossibleMatchRepository possibleMatchRepository, final StudentTwinService studentTwinService, final StudentService studentService) {
+  public PenDemographicsMigrationService(final EntityManager entityManager, final ApplicationProperties applicationProperties, final PenDemographicsMigrationRepository penDemographicsMigrationRepository, final PenAuditRepository penAuditRepository, final StudentRepository studentRepository, final StudentHistoryRepository studentHistoryRepository, final StudentMergeRepository studentMergeRepository, final PenMergeRepository penMergeRepository, final PenTwinRepository penTwinRepository, final PossibleMatchRepository possibleMatchRepository, final StudentTwinService studentTwinService, final StudentService studentService, final PenMemoRepository penMemoRepository) {
     this.partitionSize = applicationProperties.getPartitionSize();
     this.entityManager = entityManager;
     this.penDemographicsMigrationRepository = penDemographicsMigrationRepository;
@@ -106,9 +108,9 @@ public class PenDemographicsMigrationService implements Closeable {
     this.possibleMatchRepository = possibleMatchRepository;
     this.studentTwinService = studentTwinService;
     this.studentService = studentService;
+    this.penMemoRepository = penMemoRepository;
     this.executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
   }
-
 
   /**
    * Process data migration.
@@ -118,6 +120,7 @@ public class PenDemographicsMigrationService implements Closeable {
     this.processDemogAuditDataMigration();
     this.processMigrationOfTwins();
     this.processMigrationOfMerges();
+    this.processMigrationOfMemo();
   }
 
   public void processDemogAuditDataMigration() {
@@ -313,14 +316,41 @@ public class PenDemographicsMigrationService implements Closeable {
       final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
       final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
       final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
-      log.info("created subset of {} merge from  entities", mergeFromSubset.size());
-      log.info("created subset of {} merge to  entities", mergeToSubset.size());
-      log.info("created subset of {} student  entities", mergedStudentsSubset.size());
+      log.info("created subset of {} merge from entities", mergeFromSubset.size());
+      log.info("created subset of {} merge to entities", mergeToSubset.size());
+      log.info("created subset of {} student entities", mergedStudentsSubset.size());
       mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
       mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
       mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
     }
     log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
+  }
+
+  public void processMigrationOfMemo() {
+    log.info("Starting data migration of Memos");
+    final List<StudentEntity> memoStudents = new ArrayList<>();
+    final var penMemoEntities = this.penMemoRepository.findAll();
+    if (!penMemoEntities.isEmpty()) {
+      this.createMemoRecords(penMemoEntities, memoStudents);
+      final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
+      log.info("created subset of {} student entities", memoStudentsSubset.size());
+      memoStudentsSubset.forEach(this.getStudentRepository()::saveAll);
+    }
+    log.info("finished data migration of Memos, persisted {} student records to DB", memoStudents.size());
+  }
+
+  private void createMemoRecords(final List<PenMemoEntity> penMemoEntities, final List<StudentEntity> memoStudents) {
+    final AtomicInteger counter = new AtomicInteger();
+    final Map<String, String> memoEntitiesMap = new HashMap<>();
+    for (final var penMemo : penMemoEntities) {
+      final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
+      if(student.isPresent()){
+        StudentEntity studentEntity = student.get();
+        studentEntity.setMemo(penMemo.getMemo());
+        memoStudents.add(studentEntity);
+      }
+    }
+    log.info("Total Entries in Memo Students {}", memoStudents.size());
   }
 
   private void createMergedRecords(final List<PenMergesEntity> penMerges, final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
