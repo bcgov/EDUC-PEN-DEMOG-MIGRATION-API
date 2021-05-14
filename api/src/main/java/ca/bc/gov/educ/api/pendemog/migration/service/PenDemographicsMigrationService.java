@@ -346,7 +346,7 @@ public class PenDemographicsMigrationService implements Closeable {
       final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
       if(student.isPresent()){
         StudentEntity studentEntity = student.get();
-        studentEntity.setMemo(penMemo.getMemo());
+        studentEntity.setMemo(penMemo.getMemo().trim());
         memoStudents.add(studentEntity);
       }
     }
