@@ -343,11 +343,13 @@ public class PenDemographicsMigrationService implements Closeable {
     final AtomicInteger counter = new AtomicInteger();
     final Map<String, String> memoEntitiesMap = new HashMap<>();
     for (final var penMemo : penMemoEntities) {
-      final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
-      if(student.isPresent()){
-        StudentEntity studentEntity = student.get();
-        studentEntity.setMemo(penMemo.getMemo().trim());
-        memoStudents.add(studentEntity);
+      if(StringUtils.isNotBlank(penMemo.getMemo())) {
+        final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
+        if (student.isPresent()) {
+          StudentEntity studentEntity = student.get();
+          studentEntity.setMemo(penMemo.getMemo().trim());
+          memoStudents.add(studentEntity);
+        }
       }
     }
     log.info("Total Entries in Memo Students {}", memoStudents.size());
