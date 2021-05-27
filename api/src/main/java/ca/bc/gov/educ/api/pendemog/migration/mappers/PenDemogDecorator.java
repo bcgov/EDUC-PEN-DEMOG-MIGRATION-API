@@ -5,7 +5,6 @@ import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -30,7 +29,13 @@ public  abstract class PenDemogDecorator implements PenDemogStudentMapper {
     return entity;
   }
 
-
+@Override
+public void updateStudent(PenDemographicsEntity penDemographicsEntity, StudentEntity entity){
+  delegate.updateStudent(penDemographicsEntity, entity);
+  entity.setCreateDate(getLocalDateTimeFromString(penDemographicsEntity.getCreateDate()));
+  entity.setUpdateDate(getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate()));
+  entity.setPostalCode(formatPostalCode(penDemographicsEntity.getPostalCode()));
+}
   private String formatPostalCode(String postalCode) {
     if (postalCode == null) {
       return null;

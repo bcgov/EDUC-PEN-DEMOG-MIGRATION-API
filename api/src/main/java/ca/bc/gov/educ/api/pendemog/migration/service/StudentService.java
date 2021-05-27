@@ -11,6 +11,7 @@ import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
 import ca.bc.gov.educ.api.pendemog.migration.model.StudentHistoryEntity;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -43,15 +44,15 @@ public class StudentService {
     log.info("Added all the demog codes {}", this.demogCodes.size());
   }
 
-  public boolean processDemographicsEntities(final List<PenDemographicsEntity> penDemographicsEntities, final String studNoLike) {
+  public boolean processDemographicsEntities(final List<PenDemographicsEntity> penDemographicsEntities, final String studNoLike, final Map<String, StudentEntity> studentEntityMap) {
     final var currentLotSize = penDemographicsEntities.size();
     if (currentLotSize > 15000) {
       final var chunks = Lists.partition(penDemographicsEntities, 10000);
       for (final var chunk : chunks) {
-        this.processChunk(chunk, studNoLike, currentLotSize);
+        this.processChunk(chunk, studNoLike, currentLotSize, studentEntityMap);
       }
     } else {
-      this.processChunk(penDemographicsEntities, studNoLike, currentLotSize);
+      this.processChunk(penDemographicsEntities, studNoLike, currentLotSize, studentEntityMap);
     }
 
 
@@ -59,14 +60,24 @@ public class StudentService {
     return true;
   }
 
-  private void processChunk(final List<PenDemographicsEntity> penDemographicsEntities, final String studNoLike, final int currentLotSize) {
+  private void processChunk(final List<PenDemographicsEntity> penDemographicsEntities, final String studNoLike, final int currentLotSize, final Map<String, StudentEntity> studentEntityMap) {
     final List<StudentEntity> studentEntities = new ArrayList<>();
     var index = 1;
-    for (final var penDemog : penDemographicsEntities) {
-      if (penDemog.getStudNo() != null && penDemog.getStudBirth() != null) {
-        log.debug("Total Records :: {} , processing pen :: {} at index {}, for studNoLike {}", currentLotSize, penDemog.getStudNo(), index, studNoLike);
+    for (final var penDemographics : penDemographicsEntities) {
+      if (penDemographics.getStudNo() != null && penDemographics.getStudBirth() != null) {
+        val penDemog = PenDemogStudentMapper.mapper.toTrimmedEntity(penDemographics);
         penDemog.setStudBirth(this.getFormattedDOB(penDemog.getStudBirth())); //update the format
-        final var mappedStudentRecord = studentMapper.toStudent(penDemog);
+        log.debug("Total Records :: {} , processing pen :: {} at index {}, for studNoLike {}", currentLotSize, penDemog.getStudNo(), index, studNoLike);
+
+        final StudentEntity mappedStudentRecord;
+        if (studentEntityMap.containsKey(penDemog.getStudNo())) {
+          val currentStudent = studentEntityMap.get(penDemog.getStudNo());
+          PenDemogStudentMapper.mapper.updateStudent(penDemog, currentStudent);
+          mappedStudentRecord = currentStudent;
+        } else {
+          mappedStudentRecord = studentMapper.toStudent(penDemog);
+        }
+
         try {
           final LocalDate dob = LocalDate.parse(penDemog.getStudBirth());
           mappedStudentRecord.setDob(dob);

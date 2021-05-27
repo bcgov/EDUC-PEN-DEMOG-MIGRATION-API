@@ -33,6 +33,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -277,31 +278,16 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private Boolean processDemog(final String studNoLike) {
     log.debug("Now Processing studNo starting with :: {}", studNoLike);
-    final List<PenDemographicsEntity> penDemographicsEntities = new CopyOnWriteArrayList<>(this.getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%"));
+    final List<PenDemographicsEntity> penDemographicsEntities = this.getPenDemographicsMigrationRepository().findByStudNoLike(studNoLike + "%");
     if (!penDemographicsEntities.isEmpty()) {
       log.debug("Found {} records from pen demog for Stud No :: {}", penDemographicsEntities.size(), studNoLike);
-      final List<StudentEntity> studentEntities = new CopyOnWriteArrayList<>(this.getStudentRepository().findByPenLike(studNoLike + "%"));
+      final List<StudentEntity> studentEntities = this.getStudentRepository().findByPenLike(studNoLike + "%");
       log.debug("Found {} records from student for pen :: {}", studentEntities.size(), studNoLike);
-      if (!studentEntities.isEmpty()) {
-        for (final var penDemogEntity : penDemographicsEntities) {
-          for (final var student : studentEntities) {
-            if (StringUtils.equals(StringUtils.trim(penDemogEntity.getStudNo()), StringUtils.trim(student.getPen()))) {
-              penDemographicsEntities.remove(penDemogEntity);
-              studentEntities.remove(student);
-            }
-          }
-        }
-      }
-      if (!penDemographicsEntities.isEmpty()) {
-        log.debug("Found {} records for studNo starting with {} which are not processed and now processing.", penDemographicsEntities.size(), studNoLike);
-        return this.studentService.processDemographicsEntities(penDemographicsEntities, studNoLike);
-      } else {
-        log.info("Nothing to process for :: {} marking complete. total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
-      }
+      final Map<String, StudentEntity> studentEntityMap = studentEntities.stream().collect(Collectors.toConcurrentMap(StudentEntity::getPen, Function.identity()));
+      return this.studentService.processDemographicsEntities(penDemographicsEntities, studNoLike, studentEntityMap);
     } else {
       log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped., total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
     }
-
     return true;
   }
 
@@ -343,7 +329,7 @@ public class PenDemographicsMigrationService implements Closeable {
     final AtomicInteger counter = new AtomicInteger();
     final Map<String, String> memoEntitiesMap = new HashMap<>();
     for (final var penMemo : penMemoEntities) {
-      if(StringUtils.isNotBlank(penMemo.getMemo())) {
+      if (StringUtils.isNotBlank(penMemo.getMemo())) {
         final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
         if (student.isPresent()) {
           StudentEntity studentEntity = student.get();
@@ -370,7 +356,7 @@ public class PenDemographicsMigrationService implements Closeable {
       }
     }
     log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());
-    mergeEntitiesMap.forEach(this.findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities,mergedStudents, counter));
+    mergeEntitiesMap.forEach(this.findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities, mergedStudents, counter));
   }
 
   private BiConsumer<String, List<String>> findAndCreateMergeEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents, final AtomicInteger counter) {
