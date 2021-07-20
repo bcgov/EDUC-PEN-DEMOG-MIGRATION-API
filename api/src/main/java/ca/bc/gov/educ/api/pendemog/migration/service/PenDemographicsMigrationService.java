@@ -539,8 +539,8 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private String getHistoryActivityCode(final String auditCode) {
     if (auditCode != null) {
-      return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.USER_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
+      return auditCode.trim().equalsIgnoreCase("A") ? HistoryActivityCode.REQ_NEW.getCode() : HistoryActivityCode.USER_EDIT.getCode();
     }
-    return HistoryActivityCode.USER_NEW.getCode();
+    return HistoryActivityCode.REQ_NEW.getCode();
   }
 }
