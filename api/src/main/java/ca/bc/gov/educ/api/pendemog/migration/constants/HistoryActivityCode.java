@@ -4,6 +4,7 @@ import lombok.Getter;
 
 public enum HistoryActivityCode {
 
+  REQ_NEW("REQNEW"),
   USER_NEW("USERNEW"),
   USER_EDIT("USEREDIT");
 
