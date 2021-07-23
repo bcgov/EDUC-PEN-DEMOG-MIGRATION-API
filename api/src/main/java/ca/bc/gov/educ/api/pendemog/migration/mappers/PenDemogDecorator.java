@@ -42,8 +42,8 @@ public void updateStudent(PenDemographicsEntity penDemographicsEntity, StudentEn
     } else {
       postalCode = postalCode.replaceAll("\\s", "");
     }
-    if (postalCode.length() > 6) {
-      postalCode = postalCode.substring(0, 6);
+    if (postalCode.length() > 7) {
+      postalCode = postalCode.substring(0, 7);
     }
     return postalCode;
   }
