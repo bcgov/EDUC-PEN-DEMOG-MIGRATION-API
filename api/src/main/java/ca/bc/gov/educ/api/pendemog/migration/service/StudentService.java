@@ -25,10 +25,10 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class StudentService {
-  private final Set<String> gradeCodes = new HashSet<>();
-  private final Set<String> demogCodes = new HashSet<>();
   private static final PenDemogStudentMapper studentMapper = PenDemogStudentMapper.mapper;
   private static final PenAuditStudentHistoryMapper PEN_AUDIT_STUDENT_HISTORY_MAPPER = PenAuditStudentHistoryMapper.mapper;
+  private final Set<String> gradeCodes = new HashSet<>();
+  private final Set<String> demogCodes = new HashSet<>();
   private final StudentPersistenceService studentPersistenceService;
 
   @Autowired
@@ -73,6 +73,9 @@ public class StudentService {
         if (studentEntityMap.containsKey(penDemog.getStudNo())) {
           val currentStudent = studentEntityMap.get(penDemog.getStudNo());
           PenDemogStudentMapper.mapper.updateStudent(penDemog, currentStudent);
+          if (!(StringUtils.equalsIgnoreCase(currentStudent.getDemogCode(), DemogCodes.CONFIRMED.getCode()))) {
+            currentStudent.setDemogCode(StringUtils.isNotBlank(penDemog.getDemogCode()) ? penDemog.getDemogCode().trim() : DemogCodes.ACCEPTED.getCode());
+          }
           mappedStudentRecord = currentStudent;
         } else {
           mappedStudentRecord = studentMapper.toStudent(penDemog);
@@ -91,11 +94,11 @@ public class StudentService {
         if (mappedStudentRecord.getLegalLastName() == null || mappedStudentRecord.getLegalLastName().trim().equals("")) {
           mappedStudentRecord.setLegalLastName("NULL");
         }
-        if(StringUtils.isBlank(mappedStudentRecord.getCreateUser())){
+        if (StringUtils.isBlank(mappedStudentRecord.getCreateUser())) {
           log.debug("updating create user from null or blank");
           mappedStudentRecord.setCreateUser("PEN_MIGRATION_API");
         }
-        if(StringUtils.isBlank(mappedStudentRecord.getUpdateUser())){
+        if (StringUtils.isBlank(mappedStudentRecord.getUpdateUser())) {
           log.debug("updating update user from null or blank");
           mappedStudentRecord.setUpdateUser("PEN_MIGRATION_API");
         }
@@ -131,12 +134,12 @@ public class StudentService {
           studentHistory.setStudentID(penStudIDMap.get(studentHistory.getPen()));
           if (studentHistory.getGradeCode() != null && !this.gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
             log.trace("updated grade code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(),
-                recordCount.get(), penAuditEntity.getPen());
+              recordCount.get(), penAuditEntity.getPen());
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
           }
           if (studentHistory.getDemogCode() != null && !this.demogCodes.contains(studentHistory.getDemogCode().trim().toUpperCase())) {
             log.trace("updated demog code to null from :: {} at index {}, for pen {}", studentHistory.getDemogCode(),
-                recordCount.get(), penAuditEntity.getPen());
+              recordCount.get(), penAuditEntity.getPen());
             studentHistory.setDemogCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or
             // anything which is not present in DB.
           }
