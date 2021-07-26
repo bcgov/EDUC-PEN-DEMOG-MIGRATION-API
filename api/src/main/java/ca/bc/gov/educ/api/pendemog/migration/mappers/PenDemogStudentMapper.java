@@ -65,5 +65,6 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "postalCode", ignore = true)
   @Mapping(target = "createUser", source = "createUser", defaultValue = "PEN_MIGRATION_API")
   @Mapping(target = "updateUser", source = "updateUser", defaultValue = "PEN_MIGRATION_API")
+  @Mapping(target = "demogCode", ignore = true)
   void updateStudent( PenDemographicsEntity penDemographicsEntity, @MappingTarget StudentEntity studentEntity);
 }
