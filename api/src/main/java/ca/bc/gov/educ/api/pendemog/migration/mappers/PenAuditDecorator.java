@@ -52,8 +52,9 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
   }
 
   private LocalDateTime getLocalDateTimeFromString(String dateTime, final String pen) {
-    if (dateTime == null) {
-      return null;
+    if (StringUtils.isBlank(dateTime)) {
+      log.error("system will use current date time for create/update date as it is null for pen :: {}", pen);
+      return LocalDateTime.now();
     } else {
       dateTime = dateTime.trim();
       if (StringUtils.length(dateTime) > 19) {
@@ -70,8 +71,8 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
   }
 
   private LocalDate getDobFromString(String dob, final String pen) {
-    if (dob == null) {
-      log.error("system will use current date as dob was null");
+    if (StringUtils.isBlank(dob)) {
+      log.error("Data Quality Issue, DOB was blank, Setting DOB to current date for pen :: {}", pen);
       return LocalDate.now();
     } else {
       dob = dob.trim();
@@ -83,7 +84,7 @@ public abstract class PenAuditDecorator implements PenAuditStudentHistoryMapper 
     try {
       return LocalDate.parse(dob, pattern);
     } catch (final DateTimeParseException exception) {
-      log.info("system will use current date as parsing error of dob :: {}, pen :: {}", dob, pen); // pen is used for
+      log.error("Data Quality Issue, BirthDate could not be parsed dob :: {}, pen :: {}", dob, pen); // pen is used for
       // logging purpose.
     }
     return LocalDate.now();

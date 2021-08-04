@@ -31,7 +31,6 @@ public class StudentPersistenceService {
   public void saveStudents(List<StudentEntity> studentEntities) {
     if (studentEntities.size() > 1000) {
       List<List<StudentEntity>> subSets = Lists.partition(studentEntities, 1000);
-      log.info("created subset of {} student entities", subSets.size());
       subSets.forEach(studentRepository::saveAll);
     } else {
       studentRepository.saveAll(studentEntities);
@@ -47,11 +46,9 @@ public class StudentPersistenceService {
   public void saveStudentHistory(List<StudentHistoryEntity> studentHistoryEntities) {
     if (studentHistoryEntities.size() > 1500) {
       List<List<StudentHistoryEntity>> subSets = Lists.partition(studentHistoryEntities, 1000);
-      log.info("created subset of {} student history entities", subSets.size());
       subSets.forEach(studentHistoryRepository::saveAll);
     } else {
       studentHistoryRepository.saveAll(studentHistoryEntities);
     }
-    log.info("persisted {} history entities", studentHistoryEntities.size());
   }
 }

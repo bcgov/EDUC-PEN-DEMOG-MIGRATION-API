@@ -13,28 +13,28 @@ import java.time.format.DateTimeParseException;
 public  abstract class PenDemogDecorator implements PenDemogStudentMapper {
   private final PenDemogStudentMapper delegate;
 
-  protected PenDemogDecorator(PenDemogStudentMapper mapper) {
+  protected PenDemogDecorator(final PenDemogStudentMapper mapper) {
     this.delegate = mapper;
   }
 
   @Override
-  public StudentEntity toStudent(PenDemographicsEntity penDemographicsEntity) {
-    var entity = delegate.toStudent(penDemographicsEntity);
+  public StudentEntity toStudent(final PenDemographicsEntity penDemographicsEntity) {
+    final var entity = this.delegate.toStudent(penDemographicsEntity);
     if (entity == null) {
       return null;
     }
-    entity.setCreateDate(getLocalDateTimeFromString(penDemographicsEntity.getCreateDate()));
-    entity.setUpdateDate(getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate()));
-    entity.setPostalCode(formatPostalCode(penDemographicsEntity.getPostalCode()));
+    entity.setCreateDate(this.getLocalDateTimeFromString(penDemographicsEntity.getCreateDate(), entity.getPen()));
+    entity.setUpdateDate(this.getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate(), entity.getPen()));
+    entity.setPostalCode(this.formatPostalCode(penDemographicsEntity.getPostalCode()));
     return entity;
   }
 
 @Override
-public void updateStudent(PenDemographicsEntity penDemographicsEntity, StudentEntity entity){
-  delegate.updateStudent(penDemographicsEntity, entity);
-  entity.setCreateDate(getLocalDateTimeFromString(penDemographicsEntity.getCreateDate()));
-  entity.setUpdateDate(getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate()));
-  entity.setPostalCode(formatPostalCode(penDemographicsEntity.getPostalCode()));
+public void updateStudent(final PenDemographicsEntity penDemographicsEntity, final StudentEntity entity) {
+  this.delegate.updateStudent(penDemographicsEntity, entity);
+  entity.setCreateDate(this.getLocalDateTimeFromString(penDemographicsEntity.getCreateDate(), entity.getPen()));
+  entity.setUpdateDate(this.getLocalDateTimeFromString(penDemographicsEntity.getUpdateDate(), entity.getPen()));
+  entity.setPostalCode(this.formatPostalCode(penDemographicsEntity.getPostalCode()));
 }
   private String formatPostalCode(String postalCode) {
     if (postalCode == null) {
@@ -48,8 +48,9 @@ public void updateStudent(PenDemographicsEntity penDemographicsEntity, StudentEn
     return postalCode;
   }
 
-  private LocalDateTime getLocalDateTimeFromString(String dateTime) {
-    if (dateTime == null) {
+  private LocalDateTime getLocalDateTimeFromString(String dateTime, final String pen) {
+    if (StringUtils.isBlank(dateTime)) {
+      log.error("system will use current date time for create/update date as it is null for pen :: {}", pen);
       return LocalDateTime.now();
     } else {
       dateTime = dateTime.trim();
@@ -57,11 +58,11 @@ public void updateStudent(PenDemographicsEntity penDemographicsEntity, StudentEn
         dateTime = dateTime.substring(0, 19);
       }
     }
-    var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    final var pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     try {
       return LocalDateTime.parse(dateTime, pattern);
     } catch (final DateTimeParseException exception) {
-      log.error("system will use current date time as parsing error of date :: {}, error :: {}", dateTime, exception);
+      log.error("system will use current date time as parsing error of date :: {}, for pen :: {}", dateTime, pen);
     }
     return LocalDateTime.now();
   }
