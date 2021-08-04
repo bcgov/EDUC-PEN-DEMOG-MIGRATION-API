@@ -160,7 +160,7 @@ public class PenDemographicsMigrationService implements Closeable {
           future.get();
         } catch (final InterruptedException | ExecutionException e) {
           Thread.currentThread().interrupt();
-          log.warn("Error waiting for result", e);
+          log.error("Error waiting for result", e);
         }
       }
     }
@@ -296,19 +296,23 @@ public class PenDemographicsMigrationService implements Closeable {
     final List<StudentMergeEntity> mergeTOEntities = new ArrayList<>();
     final List<StudentEntity> mergedStudents = new ArrayList<>();
     final var penMerges = this.penMergeRepository.findAll();
-    if (!penMerges.isEmpty()) {
-      this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
-      final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
-      final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
-      final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
-      log.info("created subset of {} merge from entities", mergeFromSubset.size());
-      log.info("created subset of {} merge to entities", mergeToSubset.size());
-      log.info("created subset of {} student entities", mergedStudentsSubset.size());
-      mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
-      mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
-      mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
+    try {
+      if (!penMerges.isEmpty()) {
+        this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
+        final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
+        final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
+        final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
+        log.info("created subset of {} merge from entities", mergeFromSubset.size());
+        log.info("created subset of {} merge to entities", mergeToSubset.size());
+        log.info("created subset of {} student entities", mergedStudentsSubset.size());
+        mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
+        mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
+        mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
+      }
+      log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
+    } catch (Exception e) {
+      log.error("Exception while saving pen merges", e);
     }
-    log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
   }
 
   public void processMigrationOfMemo() {
@@ -509,8 +513,13 @@ public class PenDemographicsMigrationService implements Closeable {
 
       });
       if (!twinEntities.isEmpty()) {
-        log.info("created {} twinned entities", twinEntities.size());
-        this.getStudentTwinService().saveTwinnedEntities(twinEntities);
+        try {
+          log.info("created {} twinned entities", twinEntities.size());
+          this.getStudentTwinService().saveTwinnedEntities(twinEntities);
+          log.info("persisted {} twinned entities", twinEntities.size());
+        } catch (Exception e) {
+         log.error("Exception while saving twin records", e);
+        }
       }
     }
     return true;

@@ -32,7 +32,6 @@ public class StudentTwinService {
   public void saveTwinnedEntities(List<PossibleMatchEntity> twinEntities){
     if (twinEntities.size() > 1000) {
       List<List<PossibleMatchEntity>> subSets = Lists.partition(twinEntities, 1000);
-      log.info("created subset of {} twinned entities", subSets.size());
       subSets.forEach(studentTwinEntities -> getPossibleMatchRepository().saveAll(studentTwinEntities));
     } else {
       getPossibleMatchRepository().saveAll(twinEntities);

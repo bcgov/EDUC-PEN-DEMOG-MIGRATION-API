@@ -81,7 +81,7 @@ public class StudentService {
           final LocalDate dob = LocalDate.parse(penDemog.getStudBirth());
           mappedStudentRecord.setDob(dob);
         } catch (final Exception e) {
-          log.error("Data Quality Issue, Setting Birthdate of Student to 2000-01-01 for pen :: {}", mappedStudentRecord.getPen());
+          log.error("Data Quality Issue, Setting Birthdate of Student to 2000-01-01  as dob :: {} could not be parsed for pen :: {}",penDemog.getStudBirth(),  mappedStudentRecord.getPen());
           mappedStudentRecord.setDob(LocalDate.parse("2000-01-01"));
         }
         if (mappedStudentRecord.getGradeCode() != null && !this.gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
@@ -111,7 +111,7 @@ public class StudentService {
         this.studentPersistenceService.saveStudents(studentEntities);
         log.debug("processing complete for studNoLike :: {}, persisted {} records into DB", studNoLike, studentEntities.size());
       } catch (final Exception ex) {
-        log.error("Exception while persisting records for studNoLike :: {}, records into DB , exception is :: {}", studNoLike, ex);
+        log.error("Exception while persisting records for studNoLike :: {}, exception is :: {}", studNoLike, ex);
       }
     }
   }
@@ -141,14 +141,15 @@ public class StudentService {
             // anything which is not present in DB.
           }
           if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
+            log.error("Data Quality Issue, Setting Legal Last Name of Student to NULL for pen :: {}", penAuditEntity.getPen());
             studentHistory.setLegalLastName("NULL");
           }
           studentHistoryEntities.add(studentHistory);
         } catch (final Exception ex) {
-          log.error("exception while processing entity :: {}, {}", penAuditEntity, ex);
+          log.error("exception while processing pen audit entity :: {}, {}", penAuditEntity, ex);
         }
       } else {
-        log.error("Could not process the audit entity at {} is :: {}", recordCount.get(), penAuditEntity != null ? penAuditEntity.toString() : "");
+        log.error("Could not process the audit entity at {} as it is null or the pen is null :: {}", recordCount.get(), penAuditEntity != null ? penAuditEntity.toString() : "");
       }
     }
     return studentHistoryEntities;
