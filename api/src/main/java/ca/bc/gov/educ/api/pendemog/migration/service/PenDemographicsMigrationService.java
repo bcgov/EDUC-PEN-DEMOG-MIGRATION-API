@@ -196,13 +196,12 @@ public class PenDemographicsMigrationService implements Closeable {
     }
     if (!historyEntitiesToPersist.isEmpty()) {
       try {
-        log.info("going to persist {} history records", historyEntitiesToPersist.size());
         this.studentService.saveHistoryEntities(historyEntitiesToPersist);
       } catch (final Exception ex) {
         log.error("exception while saving history entities", ex);
       }
     }
-    log.info("processing complete for chunk , low :: {}, high :: {}, processed {} many pens", chunk.getLow(), chunk.getHigh(), penStudIdList.size());
+    log.info("processing complete for chunk , low :: {}, high :: {}, processed {} many pens, added {} history records", chunk.getLow(), chunk.getHigh(), penStudIdList.size(), historyEntitiesToPersist.size());
     return true;
   }
 
@@ -251,16 +250,16 @@ public class PenDemographicsMigrationService implements Closeable {
         return LocalDateTime.parse(dateTime, pattern);
       }
       return LocalDateTime.now();
-    }catch (Exception e){
+    }catch (final Exception e){
       return LocalDateTime.now();
     }
   }
 
-  private LocalDate getLocalDateFromString(String date) {
+  private LocalDate getLocalDateFromString(final String date) {
     try {
-      var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
+      final var pattern = DateTimeFormatter.ofPattern("yyyyMMdd");
       return LocalDate.parse(date, pattern);
-    }catch(Exception e){
+    }catch(final Exception e){
       return LocalDate.now();
     }
   }
@@ -286,7 +285,7 @@ public class PenDemographicsMigrationService implements Closeable {
       final Map<String, StudentEntity> studentEntityMap = studentEntities.stream().collect(Collectors.toConcurrentMap(StudentEntity::getPen, Function.identity()));
       return this.studentService.processDemographicsEntities(penDemographicsEntities, studNoLike, studentEntityMap);
     } else {
-      log.info("No Records found for Stud No like :: {} in PEN_DEMOG so skipped., total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
+      log.debug("No Records found for Stud No like :: {} in PEN_DEMOG so skipped., total number of records processed :: {}", studNoLike, CounterUtil.processCounter.incrementAndGet());
     }
     return true;
   }
@@ -319,15 +318,12 @@ public class PenDemographicsMigrationService implements Closeable {
     if (!penMemoEntities.isEmpty()) {
       this.createMemoRecords(penMemoEntities, memoStudents);
       final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
-      log.info("created subset of {} student entities", memoStudentsSubset.size());
       memoStudentsSubset.forEach(this.getStudentRepository()::saveAll);
     }
     log.info("finished data migration of Memos, persisted {} student records to DB", memoStudents.size());
   }
 
   private void createMemoRecords(final List<PenMemoEntity> penMemoEntities, final List<StudentEntity> memoStudents) {
-    final AtomicInteger counter = new AtomicInteger();
-    final Map<String, String> memoEntitiesMap = new HashMap<>();
     for (final var penMemo : penMemoEntities) {
       if (StringUtils.isNotBlank(penMemo.getMemo())) {
         final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
@@ -345,15 +341,14 @@ public class PenDemographicsMigrationService implements Closeable {
     final AtomicInteger counter = new AtomicInteger();
     final Map<String, List<String>> mergeEntitiesMap = new HashMap<>();
     for (final var penMerge : penMerges) {
+      final List<String> penNumbers;
       if (mergeEntitiesMap.containsKey(penMerge.getStudTrueNo().trim())) {
-        final List<String> penNumbers = mergeEntitiesMap.get(penMerge.getStudTrueNo().trim());
-        penNumbers.add(penMerge.getStudNo().trim());
-        mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
+        penNumbers = mergeEntitiesMap.get(penMerge.getStudTrueNo().trim());
       } else {
-        final List<String> penNumbers = new ArrayList<>();
-        penNumbers.add(penMerge.getStudNo().trim());
-        mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
+        penNumbers = new ArrayList<>();
       }
+      penNumbers.add(penMerge.getStudNo().trim());
+      mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
     }
     log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());
     mergeEntitiesMap.forEach(this.findAndCreateMergeEntities(mergeFromEntities, mergeTOEntities, mergedStudents, counter));
@@ -376,7 +371,7 @@ public class PenDemographicsMigrationService implements Closeable {
           val trueStudentID = originalStudent.get().getStudentID();
           StudentEntity mergedStudentEntity = mergedStudent.get();
           mergedStudentEntity.setTrueStudentID(trueStudentID);
-          log.info("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
+          log.debug("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
           mergedStudents.add(mergedStudentEntity);
           final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get());
           log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
@@ -398,9 +393,9 @@ public class PenDemographicsMigrationService implements Closeable {
     final StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
 
     try {
-      mergeTOEntity.setStudentMergeSourceCode(findByOldMergeCode(demogEntity.getMergeToCode()).getPrrCode());
+      mergeTOEntity.setStudentMergeSourceCode(this.findByOldMergeCode(demogEntity.getMergeToCode()).getPrrCode());
     } catch (final CodeNotFoundException e) {
-      log.info("Merge source code not found for value :: {}", demogEntity.getMergeToCode());
+      log.debug("Merge source code not found for value :: {}", demogEntity.getMergeToCode());
       mergeTOEntity.setStudentMergeSourceCode(StudentMergeSourceCodes.MI.getPrrCode());
     }
 
@@ -506,10 +501,10 @@ public class PenDemographicsMigrationService implements Closeable {
               log.debug("Record is present. for PEN :: {} and PEN :: {}", penTwinsEntity.getPenTwin1().trim(), penTwinsEntity.getPenTwin2().trim());
             }
           } else {
-            log.info("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin2().trim());
+            log.debug("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin2().trim());
           }
         } else {
-          log.info("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin1().trim());
+          log.debug("Ignoring this record as there is no student record  for PEN :: {}", penTwinsEntity.getPenTwin1().trim());
         }
 
       });
