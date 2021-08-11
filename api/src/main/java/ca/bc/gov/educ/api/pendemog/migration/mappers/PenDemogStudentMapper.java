@@ -28,7 +28,7 @@ public interface PenDemogStudentMapper {
   @Mapping(target = "gradeCode", source = "grade")
   @Mapping(target = "genderCode", source = "studSex")
   @Mapping(target = "localID", source = "localID")
-  @Mapping(target = "emailVerified", ignore = true)
+  @Mapping(target = "emailVerified", constant = "N")
   @Mapping(target = "email", ignore = true)
   @Mapping(target = "dob", ignore = true)
   @Mapping(target = "deceasedDate", ignore = true)
