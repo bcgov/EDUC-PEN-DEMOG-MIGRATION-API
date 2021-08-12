@@ -130,7 +130,7 @@ public class StudentService {
           final var studentHistory = PEN_AUDIT_STUDENT_HISTORY_MAPPER.toStudentHistory(penAuditEntity);
           studentHistory.setStudentID(penStudIDMap.get(studentHistory.getPen()));
           if (studentHistory.getGradeCode() != null && !this.gradeCodes.contains(studentHistory.getGradeCode().trim().toUpperCase())) {
-            log.trace("updated grade code to null from :: {} at index {}, for pen {}", studentHistory.getGradeCode(),
+            log.trace("updated grade code to null in Audit from :: {} at index {}, for pen {}", studentHistory.getGradeCode(),
               recordCount.get(), penAuditEntity.getPen());
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
           }
@@ -141,8 +141,11 @@ public class StudentService {
             // anything which is not present in DB.
           }
           if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
-            log.error("Data Quality Issue, Setting Legal Last Name of Student to NULL for pen :: {}", penAuditEntity.getPen());
+            log.error("Data Quality Issue in Audit, Setting Legal Last Name of Student to NULL for pen :: {}", penAuditEntity.getPen());
             studentHistory.setLegalLastName("NULL");
+          }
+          if(StringUtils.isBlank(studentHistory.getDemogCode())){
+            studentHistory.setDemogCode("A");
           }
           studentHistoryEntities.add(studentHistory);
         } catch (final Exception ex) {

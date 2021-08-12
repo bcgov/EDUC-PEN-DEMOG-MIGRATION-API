@@ -23,10 +23,10 @@ pipeline{
       DC_URL = "https://raw.githubusercontent.com/${OWNER}/${REPO_NAME}/master/tools/openshift/api.dc.yaml"
       MIN_REPLICAS = "1"
       MAX_REPLICAS = "1"
-      MIN_CPU = "1000m"
-      MAX_CPU = "6000m"
-      MIN_MEM = "6050Mi"
-      MAX_MEM = "12050Mi"
+      MIN_CPU = "2000m"
+      MAX_CPU = "8000m"
+      MIN_MEM = "12050Mi"
+      MAX_MEM = "20050Mi"
   }
   stages{
     stage('Initialize') {
