@@ -100,6 +100,14 @@ public class StudentService {
           log.debug("updating update user from null or blank");
           mappedStudentRecord.setUpdateUser("PEN_MIGRATION_API");
         }
+        if (StringUtils.isBlank(mappedStudentRecord.getDemogCode())) {
+          log.error("Data Quality Issue, Setting Demog code of Student to A for pen :: {}", mappedStudentRecord.getPen());
+          mappedStudentRecord.setDemogCode("A");
+        }
+        if (StringUtils.isBlank(mappedStudentRecord.getStatusCode())) {
+          log.error("Data Quality Issue, Setting Status code of Student to A for pen :: {}", mappedStudentRecord.getPen());
+          mappedStudentRecord.setStatusCode("A");
+        }
         studentEntities.add(mappedStudentRecord);
       } else {
         log.error("NO PEN OR STUD BIRTH skipping this record at index {}, for studNoLike {}", index, studNoLike);
