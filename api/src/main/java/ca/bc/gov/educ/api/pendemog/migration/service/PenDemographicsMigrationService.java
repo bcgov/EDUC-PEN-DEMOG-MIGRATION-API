@@ -299,18 +299,10 @@ public class PenDemographicsMigrationService implements Closeable {
     try {
       if (!penMerges.isEmpty()) {
         this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
-        final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
-        final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
-        final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
-        log.info("created subset of {} merge from entities", mergeFromSubset.size());
-        log.info("created subset of {} merge to entities", mergeToSubset.size());
-        log.info("created subset of {} student entities", mergedStudentsSubset.size());
-        mergeFromSubset.forEach(this.getStudentMergeRepository()::saveAll);
-        mergeToSubset.forEach(this.getStudentMergeRepository()::saveAll);
-        mergedStudentsSubset.forEach(this.getStudentRepository()::saveAll);
+        this.studentService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
       }
       log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
-    } catch (Exception e) {
+    } catch (final Exception e) {
       log.error("Exception while saving pen merges", e);
     }
   }
@@ -321,8 +313,7 @@ public class PenDemographicsMigrationService implements Closeable {
     final var penMemoEntities = this.penMemoRepository.findAll();
     if (!penMemoEntities.isEmpty()) {
       this.createMemoRecords(penMemoEntities, memoStudents);
-      final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
-      memoStudentsSubset.forEach(this.getStudentRepository()::saveAll);
+      this.studentService.updateStudentWithMemos(memoStudents);
     }
     log.info("finished data migration of Memos, persisted {} student records to DB", memoStudents.size());
   }
@@ -332,7 +323,7 @@ public class PenDemographicsMigrationService implements Closeable {
       if (StringUtils.isNotBlank(penMemo.getMemo())) {
         final var student = this.studentRepository.findStudentEntityByPen(penMemo.getStudNo().trim());
         if (student.isPresent()) {
-          StudentEntity studentEntity = student.get();
+          final StudentEntity studentEntity = student.get();
           studentEntity.setMemo(penMemo.getMemo().trim());
           memoStudents.add(studentEntity);
         }
@@ -370,10 +361,10 @@ public class PenDemographicsMigrationService implements Closeable {
       log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       final var mergedStudent = this.studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
-        Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
+        final Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
         if(penDemogs.isPresent()) {
           val trueStudentID = originalStudent.get().getStudentID();
-          StudentEntity mergedStudentEntity = mergedStudent.get();
+          final StudentEntity mergedStudentEntity = mergedStudent.get();
           mergedStudentEntity.setTrueStudentID(trueStudentID);
           log.debug("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
           mergedStudents.add(mergedStudentEntity);
@@ -492,7 +483,7 @@ public class PenDemographicsMigrationService implements Closeable {
                 possibleMatchEntity.setUpdateUser("PEN_MIGRATION_API");
               }
               try {
-                possibleMatchEntity.setMatchReasonCode(findByOldCode(penTwinsEntity.getTwinReason()).getPrrCode());
+                possibleMatchEntity.setMatchReasonCode(this.findByOldCode(penTwinsEntity.getTwinReason()).getPrrCode());
               } catch (final CodeNotFoundException e) {
                 log.info("Match reason code not found for value :: {}", penTwinsEntity.getTwinReason());
                 possibleMatchEntity.setMatchReasonCode(MatchReasonCode.PENMATCH.getPrrCode());
@@ -517,8 +508,8 @@ public class PenDemographicsMigrationService implements Closeable {
           log.info("created {} twinned entities", twinEntities.size());
           this.getStudentTwinService().saveTwinnedEntities(twinEntities);
           log.info("persisted {} twinned entities", twinEntities.size());
-        } catch (Exception e) {
-         log.error("Exception while saving twin records", e);
+        } catch (final Exception e) {
+          log.error("Exception while saving twin records", e);
         }
       }
     }

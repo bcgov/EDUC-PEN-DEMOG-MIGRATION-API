@@ -5,10 +5,7 @@ import ca.bc.gov.educ.api.pendemog.migration.constants.DemogCodes;
 import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenAuditStudentHistoryMapper;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
-import ca.bc.gov.educ.api.pendemog.migration.model.PenAuditEntity;
-import ca.bc.gov.educ.api.pendemog.migration.model.PenDemographicsEntity;
-import ca.bc.gov.educ.api.pendemog.migration.model.StudentEntity;
-import ca.bc.gov.educ.api.pendemog.migration.model.StudentHistoryEntity;
+import ca.bc.gov.educ.api.pendemog.migration.model.*;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -177,5 +174,12 @@ public class StudentService {
 
   public void saveHistoryEntities(final List<StudentHistoryEntity> historyEntitiesToPersist) {
     this.studentPersistenceService.saveStudentHistory(historyEntitiesToPersist);
+  }
+
+  public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
+    this.studentPersistenceService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
+  }
+  public void updateStudentWithMemos(List<StudentEntity> memoStudents){
+    this.studentPersistenceService.updateStudentWithMemos(memoStudents);
   }
 }

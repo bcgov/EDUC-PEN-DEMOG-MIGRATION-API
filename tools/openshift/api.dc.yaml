@@ -42,15 +42,6 @@ objects:
                 timeoutSeconds: 5
                 failureThreshold: 30
                 successThreshold: 1
-              livenessProbe:
-                httpGet:
-                  path: /actuator/health
-                  port: 8080
-                initialDelaySeconds: 300
-                periodSeconds: 300
-                timeoutSeconds: 60
-                failureThreshold: 100
-                successThreshold: 1
               name: "${APP_NAME}-${JOB_NAME}"
               ports:
                 - containerPort: ${{CONTAINER_PORT}}
