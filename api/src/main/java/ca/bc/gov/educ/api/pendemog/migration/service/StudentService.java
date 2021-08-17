@@ -78,7 +78,7 @@ public class StudentService {
           final LocalDate dob = LocalDate.parse(penDemog.getStudBirth());
           mappedStudentRecord.setDob(dob);
         } catch (final Exception e) {
-          log.error("Data Quality Issue, Setting Birthdate of Student to 2000-01-01  as dob :: {} could not be parsed for pen :: {}",penDemog.getStudBirth(),  mappedStudentRecord.getPen());
+          log.error("Data Quality Issue, Setting Birthdate of Student to 2000-01-01  as dob :: {} could not be parsed for pen :: {}", penDemog.getStudBirth(), mappedStudentRecord.getPen());
           mappedStudentRecord.setDob(LocalDate.parse("2000-01-01"));
         }
         if (mappedStudentRecord.getGradeCode() != null && !this.gradeCodes.contains(mappedStudentRecord.getGradeCode().trim().toUpperCase())) {
@@ -140,17 +140,15 @@ public class StudentService {
             studentHistory.setGradeCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or anything which is not present in DB.
           }
           if (studentHistory.getDemogCode() != null && !this.demogCodes.contains(studentHistory.getDemogCode().trim().toUpperCase())) {
-            log.trace("updated demog code to null from :: {} at index {}, for pen {}", studentHistory.getDemogCode(),
-              recordCount.get(), penAuditEntity.getPen());
+            if (StringUtils.isNotBlank(StringUtils.trim(studentHistory.getDemogCode()))) {
+              log.error("Data Quality Issue in Audit, Setting Demog code to to null as demog code :: {} is not recognized for pen :: {}",studentHistory.getDemogCode(), studentHistory.getPen());
+            }
             studentHistory.setDemogCode(null);// to maintain FK, it is ok to put null but not OK to put blank string or
             // anything which is not present in DB.
           }
           if (StringUtils.isBlank(studentHistory.getLegalLastName())) {
             log.error("Data Quality Issue in Audit, Setting Legal Last Name of Student to NULL for pen :: {}", penAuditEntity.getPen());
             studentHistory.setLegalLastName("NULL");
-          }
-          if(StringUtils.isBlank(studentHistory.getDemogCode())){
-            studentHistory.setDemogCode("A");
           }
           studentHistoryEntities.add(studentHistory);
         } catch (final Exception ex) {
@@ -179,7 +177,8 @@ public class StudentService {
   public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
     this.studentPersistenceService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
   }
-  public void updateStudentWithMemos(List<StudentEntity> memoStudents){
+
+  public void updateStudentWithMemos(List<StudentEntity> memoStudents) {
     this.studentPersistenceService.updateStudentWithMemos(memoStudents);
   }
 }
