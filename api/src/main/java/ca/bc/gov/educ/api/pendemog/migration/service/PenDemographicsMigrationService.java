@@ -486,7 +486,7 @@ public class PenDemographicsMigrationService implements Closeable {
                 possibleMatchEntity.setMatchReasonCode(this.findByOldCode(penTwinsEntity.getTwinReason()).getPrrCode());
               } catch (final CodeNotFoundException e) {
                 log.info("Match reason code not found for value :: {}", penTwinsEntity.getTwinReason());
-                possibleMatchEntity.setMatchReasonCode(MatchReasonCode.PENMATCH.getPrrCode());
+                possibleMatchEntity.setMatchReasonCode(MatchReasonCode.MI.getPrrCode());
               }
 
               possibleMatchEntity.setStudentID(student1.getStudentID());
