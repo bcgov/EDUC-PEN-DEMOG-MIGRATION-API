@@ -8,7 +8,7 @@ TZVALUE="America/Vancouver"
 DB_JDBC_CONNECT_STRING=$(oc -n "$OPENSHIFT_NAMESPACE"-"$envValue" -o json get configmaps "${APP_NAME}"-"${envValue}"-setup-config | sed -n 's/.*"DB_JDBC_CONNECT_STRING": "\(.*\)",/\1/p')
 DB_PWD=$(oc -n "$OPENSHIFT_NAMESPACE"-"$envValue" -o json get configmaps "${APP_NAME}"-"${envValue}"-setup-config | sed -n "s/.*\"DB_PWD_${APP_NAME_UPPER}\": \"\(.*\)\",/\1/p")
 DB_USER=$(oc -n "$OPENSHIFT_NAMESPACE"-"$envValue" -o json get configmaps "${APP_NAME}"-"${envValue}"-setup-config | sed -n "s/.*\"DB_USER_${APP_NAME_UPPER}\": \"\(.*\)\",/\1/p")
-
+SPLUNK_TOKEN=$(oc -n "$OPENSHIFT_NAMESPACE"-"$envValue" -o json get configmaps "${APP_NAME}"-"${envValue}"-setup-config | sed -n "s/.*\"SPLUNK_TOKEN_${APP_NAME_UPPER}\": \"\(.*\)\"/\1/p")
 ###########################################################
 #Setup for config-map
 ###########################################################
