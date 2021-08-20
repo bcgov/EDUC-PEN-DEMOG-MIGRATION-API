@@ -116,6 +116,14 @@ public class PenDemographicsMigrationService implements Closeable {
   /**
    * Process data migration.
    */
+
+  public void processDataMigrationFromAudit(){
+    this.processDemogAuditDataMigration();
+    this.processMigrationOfTwins();
+    this.processMigrationOfMerges();
+    this.processMigrationOfMemo();
+  }
+
   public void processDataMigration() {
     this.processDemogDataMigration();
     this.processDemogAuditDataMigration();

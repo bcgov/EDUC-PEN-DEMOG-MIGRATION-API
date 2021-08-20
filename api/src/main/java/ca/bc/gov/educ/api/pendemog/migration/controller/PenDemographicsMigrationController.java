@@ -42,6 +42,12 @@ public class PenDemographicsMigrationController implements PenDemographicsMigrat
   }
 
   @Override
+  public ResponseEntity<Void> kickOffAuditAndAfter() {
+    executorService.execute(penDemographicsMigrationService::processDataMigrationFromAudit);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
   public ResponseEntity<Void> kickOffDemogDataMigrationProcess() {
     executorService.execute(penDemographicsMigrationService::processDemogDataMigration);
     return ResponseEntity.noContent().build();
