@@ -459,7 +459,6 @@ public class PenDemographicsMigrationService implements Closeable {
     final var studentTwins = this.getStudentRepository().findByPenLike(penLike + "%");
     final var studentTwinMap = studentTwins.stream()
             .collect(Collectors.toMap(StudentEntity::getPen, studentEntity -> studentEntity));
-    log.info("found {} records .", penTwins.size());
     if (!penTwins.isEmpty()) {
       penTwins.forEach(penTwinsEntity -> {
         final StudentEntity student1;

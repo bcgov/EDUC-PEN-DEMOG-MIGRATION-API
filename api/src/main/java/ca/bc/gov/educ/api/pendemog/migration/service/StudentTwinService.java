@@ -28,13 +28,18 @@ public class StudentTwinService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveTwinnedEntities(List<PossibleMatchEntity> twinEntities){
-    if (twinEntities.size() > 1000) {
-      List<List<PossibleMatchEntity>> subSets = Lists.partition(twinEntities, 1000);
-      subSets.forEach(studentTwinEntities -> getPossibleMatchRepository().saveAll(studentTwinEntities));
-    } else {
-      getPossibleMatchRepository().saveAll(twinEntities);
+    try{
+      if (twinEntities.size() > 1000) {
+        List<List<PossibleMatchEntity>> subSets = Lists.partition(twinEntities, 1000);
+        subSets.forEach(studentTwinEntities -> getPossibleMatchRepository().saveAll(studentTwinEntities));
+      } else {
+        getPossibleMatchRepository().saveAll(twinEntities);
+      }
+    }catch (final  Exception e){
+      log.error("Exception", e);
+      throw e;
     }
   }
 }
