@@ -32,7 +32,7 @@ public class StudentPersistenceService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudents(final List<StudentEntity> studentEntities) {
     try {
       if (studentEntities.size() > 1000) {
@@ -42,7 +42,7 @@ public class StudentPersistenceService {
         this.studentRepository.saveAll(studentEntities);
       }
     } catch (Exception e) {
-      log.error("Exception",e);
+      log.error("Exception", e);
       throw e;
     }
   }
@@ -52,7 +52,7 @@ public class StudentPersistenceService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudentHistory(final List<StudentHistoryEntity> studentHistoryEntities) {
     try {
       if (studentHistoryEntities.size() > 1500) {
@@ -62,13 +62,13 @@ public class StudentPersistenceService {
         this.studentHistoryRepository.saveAll(studentHistoryEntities);
       }
     } catch (Exception e) {
-      log.error("Exception",e);
+      log.error("Exception", e);
       throw e;
     }
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
     try {
       final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
@@ -81,18 +81,18 @@ public class StudentPersistenceService {
       mergeToSubset.forEach(this.studentMergeRepository::saveAll);
       mergedStudentsSubset.forEach(this.studentRepository::saveAll);
     } catch (Exception e) {
-      log.error("Exception",e);
+      log.error("Exception", e);
       throw e;
     }
   }
 
-  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void updateStudentWithMemos(final List<StudentEntity> memoStudents) {
     try {
       final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
       memoStudentsSubset.forEach(this.studentRepository::saveAll);
     } catch (Exception e) {
-      log.error("Exception",e);
+      log.error("Exception", e);
       throw e;
     }
   }
