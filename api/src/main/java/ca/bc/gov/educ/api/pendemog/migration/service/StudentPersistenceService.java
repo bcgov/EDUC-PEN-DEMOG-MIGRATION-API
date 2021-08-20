@@ -34,11 +34,16 @@ public class StudentPersistenceService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudents(final List<StudentEntity> studentEntities) {
-    if (studentEntities.size() > 1000) {
-      final List<List<StudentEntity>> subSets = Lists.partition(studentEntities, 1000);
-      subSets.forEach(this.studentRepository::saveAll);
-    } else {
-      this.studentRepository.saveAll(studentEntities);
+    try {
+      if (studentEntities.size() > 1000) {
+        final List<List<StudentEntity>> subSets = Lists.partition(studentEntities, 1000);
+        subSets.forEach(this.studentRepository::saveAll);
+      } else {
+        this.studentRepository.saveAll(studentEntities);
+      }
+    } catch (Exception e) {
+      log.error("Exception",e);
+      throw e;
     }
   }
 
@@ -49,31 +54,46 @@ public class StudentPersistenceService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudentHistory(final List<StudentHistoryEntity> studentHistoryEntities) {
-    if (studentHistoryEntities.size() > 1500) {
-      final List<List<StudentHistoryEntity>> subSets = Lists.partition(studentHistoryEntities, 1000);
-      subSets.forEach(this.studentHistoryRepository::saveAll);
-    } else {
-      this.studentHistoryRepository.saveAll(studentHistoryEntities);
+    try {
+      if (studentHistoryEntities.size() > 1500) {
+        final List<List<StudentHistoryEntity>> subSets = Lists.partition(studentHistoryEntities, 1000);
+        subSets.forEach(this.studentHistoryRepository::saveAll);
+      } else {
+        this.studentHistoryRepository.saveAll(studentHistoryEntities);
+      }
+    } catch (Exception e) {
+      log.error("Exception",e);
+      throw e;
     }
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
-    final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
-    final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
-    final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
-    log.info("created subset of {} merge from entities", mergeFromSubset.size());
-    log.info("created subset of {} merge to entities", mergeToSubset.size());
-    log.info("created subset of {} student entities", mergedStudentsSubset.size());
-    mergeFromSubset.forEach(this.studentMergeRepository::saveAll);
-    mergeToSubset.forEach(this.studentMergeRepository::saveAll);
-    mergedStudentsSubset.forEach(this.studentRepository::saveAll);
+    try {
+      final List<List<StudentMergeEntity>> mergeFromSubset = Lists.partition(mergeFromEntities, 1000);
+      final List<List<StudentMergeEntity>> mergeToSubset = Lists.partition(mergeTOEntities, 1000);
+      final List<List<StudentEntity>> mergedStudentsSubset = Lists.partition(mergedStudents, 1000);
+      log.info("created subset of {} merge from entities", mergeFromSubset.size());
+      log.info("created subset of {} merge to entities", mergeToSubset.size());
+      log.info("created subset of {} student entities", mergedStudentsSubset.size());
+      mergeFromSubset.forEach(this.studentMergeRepository::saveAll);
+      mergeToSubset.forEach(this.studentMergeRepository::saveAll);
+      mergedStudentsSubset.forEach(this.studentRepository::saveAll);
+    } catch (Exception e) {
+      log.error("Exception",e);
+      throw e;
+    }
   }
 
   @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void updateStudentWithMemos(final List<StudentEntity> memoStudents) {
-    final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
-    memoStudentsSubset.forEach(this.studentRepository::saveAll);
+    try {
+      final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
+      memoStudentsSubset.forEach(this.studentRepository::saveAll);
+    } catch (Exception e) {
+      log.error("Exception",e);
+      throw e;
+    }
   }
 }
