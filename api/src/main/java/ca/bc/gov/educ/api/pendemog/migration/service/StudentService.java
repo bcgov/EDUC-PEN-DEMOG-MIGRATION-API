@@ -150,6 +150,10 @@ public class StudentService {
             log.error("Data Quality Issue in Audit, Setting Legal Last Name of Student to NULL for pen :: {}", penAuditEntity.getPen());
             studentHistory.setLegalLastName("NULL");
           }
+          if(studentHistory.getDob().isAfter(LocalDate.now())){
+            log.error("Data Quality Issue in Audit, Setting DOB to current date as DOB is future date for pen :: {}", penAuditEntity.getPen());
+            studentHistory.setDob(LocalDate.now());
+          }
           studentHistoryEntities.add(studentHistory);
         } catch (final Exception ex) {
           log.error("exception while processing pen audit entity :: {}, {}", penAuditEntity, ex);
