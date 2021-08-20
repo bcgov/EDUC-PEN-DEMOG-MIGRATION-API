@@ -10,11 +10,13 @@ import ca.bc.gov.educ.api.pendemog.migration.properties.ApplicationProperties;
 import ca.bc.gov.educ.api.pendemog.migration.repository.*;
 import ca.bc.gov.educ.api.pendemog.migration.struct.RowFilter;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.jboss.threads.EnhancedQueueExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +26,7 @@ import javax.persistence.Query;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,7 +50,6 @@ public class PenDemographicsMigrationService implements Closeable {
   private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
-  private final ExecutorService auditExecutor = Executors.newFixedThreadPool(40);
   @Getter(AccessLevel.PRIVATE)
   private final PenDemographicsMigrationRepository penDemographicsMigrationRepository;
 
@@ -110,7 +112,9 @@ public class PenDemographicsMigrationService implements Closeable {
     this.studentTwinService = studentTwinService;
     this.studentService = studentService;
     this.penMemoRepository = penMemoRepository;
-    this.executorService = Executors.newFixedThreadPool(applicationProperties.getQueryThreads());
+    this.executorService = new EnhancedQueueExecutor.Builder()
+      .setThreadFactory(new ThreadFactoryBuilder().setNameFormat("task-executor-%d").build())
+      .setCorePoolSize(applicationProperties.getQueryThreads()).setMaximumPoolSize(applicationProperties.getQueryThreads()).setKeepAliveTime(Duration.ofSeconds(60)).build();
   }
 
   /**
@@ -154,7 +158,7 @@ public class PenDemographicsMigrationService implements Closeable {
     final List<Future<Boolean>> futures = new CopyOnWriteArrayList<>();
     for (final var chunk : chunkList) {
       final Callable<Boolean> callable = () -> this.processDemogAuditChunk(chunk);
-      futures.add(this.auditExecutor.submit(callable));
+      futures.add(this.executorService.submit(callable));
     }
     this.checkFutureResults(futures);
     log.info("All pen demog audit records have been processed.");
