@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 public class PenDemographicsMigrationService implements Closeable {
 
 
+  private final List<String> studentIdMergeStudentIdList = new ArrayList<>();
   private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
@@ -375,7 +376,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
   private Consumer<String> createMergeStudentEntities(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final AtomicInteger counter, final String truePen, final Optional<StudentEntity> originalStudent, final List<StudentEntity> mergedStudents) {
     return penNumber -> {
-      log.info("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
+      log.debug("Index {}, creating merge from and merge to entity for true pen and pen :: {} {}", counter.incrementAndGet(), truePen, penNumber);
       final var mergedStudent = this.studentRepository.findStudentEntityByPen(penNumber);
       if (originalStudent.isPresent() && mergedStudent.isPresent()) {
         final Optional<PenDemographicsEntity> penDemogs = this.getPenDemographicsMigrationRepository().findByStudNo(penNumber + " ");
@@ -386,11 +387,11 @@ public class PenDemographicsMigrationService implements Closeable {
           log.debug("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
           mergedStudents.add(mergedStudentEntity);
           final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get());
-          log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity.toString());
+          log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity);
           mergeFromEntities.add(mergeFromEntity);
 
           final StudentMergeEntity mergeTOEntity = this.createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO", penDemogs.get());
-          log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity.toString());
+          log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity);
           mergeTOEntities.add(mergeTOEntity);
         } else {
           log.error("Index {}, pen demogs not for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
@@ -414,6 +415,10 @@ public class PenDemographicsMigrationService implements Closeable {
     mergeTOEntity.setStudentMergeDirectionCode(direction);
     mergeTOEntity.setStudentID(studentId);
     mergeTOEntity.setMergeStudentID(mergeStudent.getStudentID());
+    val studIdMergeStudId = studentId.toString().concat(mergeStudent.getStudentID().toString());
+    if(this.studentIdMergeStudentIdList.contains(studIdMergeStudId)){
+      log.warn("Data Quality Issue, student id and merge student id is repeated :: {} {}", studentId, mergeStudent.getStudentID());
+    }
     LocalDateTime mergeDate;
     try {
       mergeDate = this.getLocalDateTimeFromString(demogEntity.getMergeToDate());
