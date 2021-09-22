@@ -354,7 +354,12 @@ public class PenDemographicsMigrationService implements Closeable {
       } else {
         penNumbers = new ArrayList<>();
       }
-      penNumbers.add(penMerge.getStudNo().trim());
+      val studNo = penMerge.getStudNo().trim();
+      if (penNumbers.contains(studNo)) {
+        log.warn("Data Quality Issue for merges, same record exist more than once for true pen and pen :: {} {}", penMerge.getStudTrueNo().trim(), studNo);
+      } else {
+        penNumbers.add(penMerge.getStudNo().trim());
+      }
       mergeEntitiesMap.put(penMerge.getStudTrueNo().trim(), penNumbers);
     }
     log.info("Total Entries in Merges MAP {}", mergeEntitiesMap.size());

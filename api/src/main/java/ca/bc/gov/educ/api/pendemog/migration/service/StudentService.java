@@ -175,7 +175,12 @@ public class StudentService {
   }
 
   public void saveHistoryEntities(final List<StudentHistoryEntity> historyEntitiesToPersist) {
-    this.studentPersistenceService.saveStudentHistory(historyEntitiesToPersist);
+
+    try {
+      this.studentPersistenceService.saveStudentHistory(historyEntitiesToPersist);
+    } catch (Exception e) {
+      // EMPTY, it is already logged.
+    }
   }
 
   public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {

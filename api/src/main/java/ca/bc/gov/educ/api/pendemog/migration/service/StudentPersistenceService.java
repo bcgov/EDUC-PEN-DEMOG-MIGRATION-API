@@ -52,7 +52,7 @@ public class StudentPersistenceService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 20, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudentHistory(final List<StudentHistoryEntity> studentHistoryEntities) {
     try {
       if (studentHistoryEntities.size() > 1500) {
