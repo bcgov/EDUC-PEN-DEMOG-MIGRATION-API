@@ -48,6 +48,7 @@ public class PenDemographicsMigrationService implements Closeable {
 
 
   private final List<String> studentIdMergeStudentIdList = new ArrayList<>();
+  private boolean isDuplicateMergePresent = false;
   private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
@@ -312,6 +313,11 @@ public class PenDemographicsMigrationService implements Closeable {
     try {
       if (!penMerges.isEmpty()) {
         this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
+        if(this.isDuplicateMergePresent){
+          this.studentIdMergeStudentIdList.clear();
+          this.isDuplicateMergePresent = false;
+          throw  new RuntimeException("Duplicate merge entries, exiting");
+        }
         this.studentService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
       }
       log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
@@ -418,6 +424,9 @@ public class PenDemographicsMigrationService implements Closeable {
     val studIdMergeStudId = studentId.toString().concat(mergeStudent.getStudentID().toString());
     if(this.studentIdMergeStudentIdList.contains(studIdMergeStudId)){
       log.warn("Data Quality Issue, student id and merge student id is repeated :: {} {}", studentId, mergeStudent.getStudentID());
+      this.isDuplicateMergePresent = true;
+    }else {
+      this.studentIdMergeStudentIdList.add(studIdMergeStudId);
     }
     LocalDateTime mergeDate;
     try {
