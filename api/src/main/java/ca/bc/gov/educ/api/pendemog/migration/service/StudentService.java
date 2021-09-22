@@ -184,7 +184,11 @@ public class StudentService {
   }
 
   public void saveMergesAndStudentUpdates(final List<StudentMergeEntity> mergeFromEntities, final List<StudentMergeEntity> mergeTOEntities, final List<StudentEntity> mergedStudents) {
-    this.studentPersistenceService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
+    try {
+      this.studentPersistenceService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
+    } catch (Exception e) {
+      //Empty
+    }
   }
 
   public void updateStudentWithMemos(List<StudentEntity> memoStudents) {

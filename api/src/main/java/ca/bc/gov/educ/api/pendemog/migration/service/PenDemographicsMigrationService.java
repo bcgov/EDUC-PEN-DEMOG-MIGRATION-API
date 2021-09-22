@@ -48,7 +48,6 @@ public class PenDemographicsMigrationService implements Closeable {
 
 
   private final List<String> studentIdMergeStudentIdList = new ArrayList<>();
-  private boolean isDuplicateMergePresent = false;
   private final Integer partitionSize;
   private final EntityManager entityManager;
   private final ExecutorService executorService;
@@ -313,11 +312,7 @@ public class PenDemographicsMigrationService implements Closeable {
     try {
       if (!penMerges.isEmpty()) {
         this.createMergedRecords(penMerges, mergeFromEntities, mergeTOEntities, mergedStudents);
-        if(this.isDuplicateMergePresent){
-          this.studentIdMergeStudentIdList.clear();
-          this.isDuplicateMergePresent = false;
-          throw  new RuntimeException("Duplicate merge entries, exiting");
-        }
+        this.studentIdMergeStudentIdList.clear();
         this.studentService.saveMergesAndStudentUpdates(mergeFromEntities, mergeTOEntities, mergedStudents);
       }
       log.info("finished data migration of Merges, persisted {} merge from  records and {} merge to records and {} student records to DB", mergeFromEntities.size(), mergeTOEntities.size(), mergedStudents.size());
@@ -392,13 +387,8 @@ public class PenDemographicsMigrationService implements Closeable {
           mergedStudentEntity.setTrueStudentID(trueStudentID);
           log.debug("Added true student ID:: {} for PEN :: {}",trueStudentID, mergedStudentEntity.getPen());
           mergedStudents.add(mergedStudentEntity);
-          final StudentMergeEntity mergeFromEntity = this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get());
-          log.debug("Index {}, merge from  entity {}", counter.get(), mergeFromEntity);
-          mergeFromEntities.add(mergeFromEntity);
-
-          final StudentMergeEntity mergeTOEntity = this.createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO", penDemogs.get());
-          log.debug("Index {}, merge to  entity {}", counter.get(), mergeTOEntity);
-          mergeTOEntities.add(mergeTOEntity);
+          this.createMergeEntity(mergedStudentEntity, originalStudent.get().getStudentID(), "FROM", penDemogs.get()).ifPresent(mergeFromEntities::add);
+          this.createMergeEntity(originalStudent.get(), mergedStudent.get().getStudentID(), "TO", penDemogs.get()).ifPresent(mergeTOEntities::add);
         } else {
           log.error("Index {}, pen demogs not for true pen and pen :: {} :: {}", counter.get(), truePen, penNumber);
         }
@@ -408,7 +398,7 @@ public class PenDemographicsMigrationService implements Closeable {
     };
   }
 
-  private StudentMergeEntity createMergeEntity(final StudentEntity mergeStudent, final UUID studentId, final String direction, final PenDemographicsEntity demogEntity) {
+  private Optional<StudentMergeEntity> createMergeEntity(final StudentEntity mergeStudent, final UUID studentId, final String direction, final PenDemographicsEntity demogEntity) {
     final StudentMergeEntity mergeTOEntity = new StudentMergeEntity();
 
     try {
@@ -417,14 +407,13 @@ public class PenDemographicsMigrationService implements Closeable {
       log.debug("Merge source code not found for value :: {}", demogEntity.getMergeToCode());
       mergeTOEntity.setStudentMergeSourceCode(StudentMergeSourceCodes.MI.getPrrCode());
     }
-
     mergeTOEntity.setStudentMergeDirectionCode(direction);
     mergeTOEntity.setStudentID(studentId);
     mergeTOEntity.setMergeStudentID(mergeStudent.getStudentID());
     val studIdMergeStudId = studentId.toString().concat(mergeStudent.getStudentID().toString());
     if(this.studentIdMergeStudentIdList.contains(studIdMergeStudId)){
       log.warn("Data Quality Issue, student id and merge student id is repeated :: {} {}", studentId, mergeStudent.getStudentID());
-      this.isDuplicateMergePresent = true;
+      return Optional.empty();
     }else {
       this.studentIdMergeStudentIdList.add(studIdMergeStudId);
     }
@@ -444,8 +433,7 @@ public class PenDemographicsMigrationService implements Closeable {
       mergeTOEntity.setCreateUser("PEN_MIGRATION_API");
       mergeTOEntity.setUpdateUser("PEN_MIGRATION_API");
     }
-
-    return mergeTOEntity;
+    return Optional.of(mergeTOEntity);
   }
 
   public void processMigrationOfTwins() {
