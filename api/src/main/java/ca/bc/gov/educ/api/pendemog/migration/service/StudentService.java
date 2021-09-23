@@ -26,6 +26,7 @@ public class StudentService {
   private static final PenAuditStudentHistoryMapper PEN_AUDIT_STUDENT_HISTORY_MAPPER = PenAuditStudentHistoryMapper.mapper;
   private final Set<String> gradeCodes = new HashSet<>();
   private final Set<String> demogCodes = new HashSet<>();
+  private final Set<String> statusCodes = new HashSet<>();
   private final StudentPersistenceService studentPersistenceService;
 
   @Autowired
@@ -37,6 +38,9 @@ public class StudentService {
   public void init() {
     this.gradeCodes.addAll(Arrays.stream(GradeCodes.values()).map(GradeCodes::getCode).collect(Collectors.toSet()));
     this.demogCodes.addAll(Arrays.stream(DemogCodes.values()).map(DemogCodes::getCode).collect(Collectors.toSet()));
+    statusCodes.add("A");
+    statusCodes.add("D");
+    statusCodes.add("M");
     log.info("Added all the grade codes {}", this.gradeCodes.size());
     log.info("Added all the demog codes {}", this.demogCodes.size());
   }
@@ -153,6 +157,13 @@ public class StudentService {
           if(studentHistory.getDob().isAfter(LocalDate.now())){
             log.error("Data Quality Issue in Audit, Setting DOB to current date as DOB is future date for pen :: {}", penAuditEntity.getPen());
             studentHistory.setDob(LocalDate.now());
+          }
+          if(StringUtils.isBlank(studentHistory.getStatusCode())){
+            log.error("Data Quality Issue in Audit, Setting status to 'A' as it was blank or null for pen  :: {}", penAuditEntity.getPen());
+            studentHistory.setStatusCode("A");
+          }else if(!this.statusCodes.contains(studentHistory.getStatusCode().trim().toUpperCase())){
+            log.error("Data Quality Issue in Audit, Setting status to 'A' as status :: {} is not recognized for pen :: {}",studentHistory.getStatusCode().trim(), penAuditEntity.getPen());
+            studentHistory.setStatusCode("A");
           }
           studentHistoryEntities.add(studentHistory);
         } catch (final Exception ex) {
