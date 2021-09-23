@@ -6,14 +6,23 @@ import ca.bc.gov.educ.api.pendemog.migration.constants.GradeCodes;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenAuditStudentHistoryMapper;
 import ca.bc.gov.educ.api.pendemog.migration.mappers.PenDemogStudentMapper;
 import ca.bc.gov.educ.api.pendemog.migration.model.*;
+import ca.bc.gov.educ.api.pendemog.migration.repository.PenAuditRepository;
+import ca.bc.gov.educ.api.pendemog.migration.repository.StudentHistoryRepository;
+import ca.bc.gov.educ.api.pendemog.migration.struct.RowFilter;
 import com.google.common.collect.Lists;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,10 +37,20 @@ public class StudentService {
   private final Set<String> demogCodes = new HashSet<>();
   private final Set<String> statusCodes = new HashSet<>();
   private final StudentPersistenceService studentPersistenceService;
+  private final EntityManager entityManager;
+  @Getter(AccessLevel.PRIVATE)
+  private final PenAuditRepository penAuditRepository;
+
+
+  @Getter(AccessLevel.PRIVATE)
+  private final StudentHistoryRepository studentHistoryRepository;
 
   @Autowired
-  public StudentService(final StudentPersistenceService studentPersistenceService) {
+  public StudentService(final StudentPersistenceService studentPersistenceService, EntityManager entityManager, PenAuditRepository penAuditRepository, StudentHistoryRepository studentHistoryRepository) {
     this.studentPersistenceService = studentPersistenceService;
+    this.entityManager = entityManager;
+    this.penAuditRepository = penAuditRepository;
+    this.studentHistoryRepository = studentHistoryRepository;
   }
 
   @PostConstruct
@@ -204,5 +223,38 @@ public class StudentService {
 
   public void updateStudentWithMemos(List<StudentEntity> memoStudents) {
     this.studentPersistenceService.updateStudentWithMemos(memoStudents);
+  }
+
+  @Retryable(value = {Exception.class}, maxAttempts = 25, backoff = @Backoff(multiplier = 3, delay = 2000))
+  public List<Object[]> findStudentPenAndID(RowFilter chunk) {
+    final Query penStudIdQuery = this.entityManager.createNativeQuery("select *\n" +
+      "from (select row_.*, rownum rownum_\n" +
+      "      from (select PEN, STUDENT_ID\n" +
+      "            from API_STUDENT.STUDENT\n" +
+      "            order by PEN) row_\n" +
+      "      where rownum <=" + chunk.getHigh() + " )\n" +
+      "where rownum_ > " + chunk.getLow());
+    final List<Object[]> penStudIdList = penStudIdQuery.getResultList();
+    return penStudIdList;
+  }
+
+  @Retryable(value = {Exception.class}, maxAttempts = 25, backoff = @Backoff(multiplier = 3, delay = 2000))
+  public List<PenAuditEntity> findAuditsByPenNumbers(final List<String> penList){
+    try {
+      return this.getPenAuditRepository().findByPenIn(penList);
+    } catch (Exception e) {
+      log.error("Exception while findAuditsByPenNumbers", e);
+      throw e;
+    }
+  }
+
+  @Retryable(value = {Exception.class}, maxAttempts = 25, backoff = @Backoff(multiplier = 3, delay = 2000))
+  public List<StudentHistoryEntity> findStudentHistoryByStudentID(final List<UUID> studentIdList){
+    try {
+      return this.getStudentHistoryRepository().findAllByStudentIDIn(studentIdList);
+    } catch (Exception e) {
+      log.error("Exception while findStudentHistoryByStudentID", e);
+      throw e;
+    }
   }
 }

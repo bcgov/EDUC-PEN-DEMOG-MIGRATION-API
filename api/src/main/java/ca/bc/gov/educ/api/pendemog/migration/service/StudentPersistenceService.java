@@ -42,7 +42,7 @@ public class StudentPersistenceService {
         this.studentRepository.saveAll(studentEntities);
       }
     } catch (Exception e) {
-      log.error("Exception", e);
+      log.error("Exception while saveStudents", e);
       throw e;
     }
   }
@@ -52,7 +52,7 @@ public class StudentPersistenceService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  @Retryable(value = {Exception.class}, maxAttempts = 12, backoff = @Backoff(multiplier = 3, delay = 2000))
+  @Retryable(value = {Exception.class}, maxAttempts = 25, backoff = @Backoff(multiplier = 3, delay = 2000))
   public void saveStudentHistory(final List<StudentHistoryEntity> studentHistoryEntities) {
     try {
       if (studentHistoryEntities.size() > 1500) {
@@ -62,7 +62,7 @@ public class StudentPersistenceService {
         this.studentHistoryRepository.saveAll(studentHistoryEntities);
       }
     } catch (Exception e) {
-      log.error("Exception", e);
+      log.error("Exception while saveStudentHistory", e);
       throw e;
     }
   }
@@ -81,7 +81,7 @@ public class StudentPersistenceService {
       mergeToSubset.forEach(this.studentMergeRepository::saveAll);
       mergedStudentsSubset.forEach(this.studentRepository::saveAll);
     } catch (Exception e) {
-      log.error("Exception", e);
+      log.error("Exception while saveMergesAndStudentUpdates", e);
       throw e;
     }
   }
@@ -92,7 +92,7 @@ public class StudentPersistenceService {
       final List<List<StudentEntity>> memoStudentsSubset = Lists.partition(memoStudents, 1000);
       memoStudentsSubset.forEach(this.studentRepository::saveAll);
     } catch (Exception e) {
-      log.error("Exception", e);
+      log.error("Exception while updateStudentWithMemos", e);
       throw e;
     }
   }
