@@ -416,11 +416,12 @@ public class PenDemographicsMigrationService implements Closeable {
     }else {
       this.studentIdMergeStudentIdList.add(studIdMergeStudId);
     }
-    LocalDateTime mergeDate;
-    try {
-      mergeDate = this.getLocalDateTimeFromString(demogEntity.getMergeToDate());
-    } catch (final DateTimeParseException e) {
+    final LocalDateTime mergeDate;
+    if(demogEntity.getMergeToDate() == null){
+      log.warn("Data Quality Issue, merge to date is null for demog entity, setting it to current date {}", demogEntity);
       mergeDate = LocalDateTime.now();
+    }else {
+      mergeDate = demogEntity.getMergeToDate();
     }
     mergeTOEntity.setCreateDate(mergeDate);
     mergeTOEntity.setUpdateDate(mergeDate);
